@@ -30,9 +30,6 @@
     </button>
 </header>
 
-<h1> #####----WORK IN PROGRESS----#####</h1>
-<h2> Das Spiel kann natürlich trotzdem gespielt werden. <br> Allerdings ist es noch nicht fertig.</h2>
-
 <section class="game">
 
     <!-- FREIFLIEGENDER SPIELTITEL (Wird via CSS & Script animiert) -->
