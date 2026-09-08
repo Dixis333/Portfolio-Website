@@ -16,8 +16,8 @@ const options = {
         reconnect: true,
     },
     identity: {
-        username: 
-        password: 
+        username: "USERNAME"
+        password: "PASSWORD"
        
     },
     channels: ['dixis333']
@@ -33,8 +33,8 @@ server.listen(1337);
 
 require('dotenv').config();
 const fetch = require('node-fetch');
-const accessToken = ;
-const clientId = ;
+const accessToken = "HIER ACCESS TOKEN EINFÜGEN";
+const clientId = "HIER CLIENT ID EINFÜGEN";
 const crypto = require('crypto');
 
 const ngrok = require('ngrok');
