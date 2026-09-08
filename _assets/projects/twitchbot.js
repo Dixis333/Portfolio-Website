@@ -16,9 +16,9 @@ const options = {
         reconnect: true,
     },
     identity: {
-        username: 'dix33bot',
-        password: 'oauth:57o79cnimfqt0rxwq0fzzotshruix6'
-        // ALTES password: 'oauth:fny3n5949fcd88j3oiydl91o0m48vd'
+        username: 
+        password: 
+       
     },
     channels: ['dixis333']
 };
@@ -33,8 +33,8 @@ server.listen(1337);
 
 require('dotenv').config();
 const fetch = require('node-fetch');
-const accessToken = '57o79cnimfqt0rxwq0fzzotshruix6';
-const clientId = 'gp762nuuoqcoxypju8c569th9wz7q5';
+const accessToken = ;
+const clientId = ;
 const crypto = require('crypto');
 
 const ngrok = require('ngrok');
