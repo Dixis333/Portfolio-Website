@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simon Masurkewitsch — Portfolio</title>
+    <meta name="description" content="RNJesus">
+
+    <!-- Google Fonts: Serif für Überschriften, Sans für Text -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+
+<!-- ================= NAVIGATION ================= -->
+<header class="site-header">
+    <a href="#top" class="logo">Simon Masurkewitsch</a>
+    <nav class="main-nav">
+        <a href="../../index.html">Start</a>
+        <a href="../../game.html">Game</a>
+        <a href="../../projekte.html">Projekte</a>
+        <a href="../../uebermich.html">Über mich</a>
+        <a href="../../kontakt.html">Kontakt</a>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="Menü öffnen" aria-expanded="false">
+        <span></span><span></span><span></span>
+    </button>
+</header>
+<div class="rnjesus" id="top">
+    <section>
+        <img src="../pictures/RNJesus_Logo.png" height="200" width="400" class="rnjesusPNG">
+        <h1>Eine Minecraft-Extension (keine Mod!)</h1>
+        <p class="rnjesus-sub">
+            RNJesus ist eine von mir entwickelte Minecraft-Extension, welche einen zusätzlichen
+            Challenge-Faktor in das Spiel integriert.<br>Wichtig ist dabei die Unterscheidung zu einer Mod.
+            Mein Programm läuft extern und beeinflusst damit nicht die Spieldaten. Es ist somit sowohl mit Vanilla-Minecraft
+            als auch mit den meisten gemoddeten Version kompatibel.
+        </p>
+        <div class="rnjesus-actions">
+            <a href="#code" class="btn btn-primary">Code</a>
+            <a href="#rnjesusVideo" class="btn btn-ghost">Erklär-Video</a>
+        </div>
+    </section>
+</div>
+
+
+<section class="rnjesusVideo" id="rnjesusVideo">
+    <h1>RNJesus und seine Funktion!</h1>
+
+    <iframe
+            width="960"
+            height="540"
+            src="ADD VIDEO LINK HERE (as soon as I have one...)"
+            title="ADD TITLE HERE"
+            allowfullscreen>
+    </iframe>
+
+    <p class="rnjesus-vidsub">
+        In einem kurzen Erklär-Video erzähle ich, wie diese Extension für User funktioniert, was sie macht und welchen Reiz sie mit sich bringt.
+    </p>
+</section>
+
+<div class="rnjesusCode" id="code">
+<section>
+    <div class="rnjesus-code-container">
+        <pre id="rnjesus-code"></pre>
+        <iframe src="rnjesus.js" width="1590" height="982"></iframe>
+    </div>
+</section>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,3331 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simon Masurkewitsch — Portfolio</title>
+    <meta name="description" content="game">
+
+    <!-- Google Fonts: Serif für Überschriften, Sans für Text -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ================= NAVIGATION ================= -->
+<header class="site-header">
+    <a href="#top" class="logo">Simon Masurkewitsch</a>
+    <nav class="main-nav">
+        <a href="index.html">Start</a>
+        <a href="game.html">Game</a>
+        <a href="projekte.html">Projekte</a>
+        <a href="uebermich.html">Über mich</a>
+        <a href="kontakt.html">Kontakt</a>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="Menü öffnen" aria-expanded="false">
+        <span></span><span></span><span></span>
+    </button>
+</header>
+
+<h1> #####----WORK IN PROGRESS----#####</h1>
+<h2> Das Spiel kann natürlich trotzdem gespielt werden. <br> Allerdings ist es noch nicht fertig.</h2>
+
+<section class="game">
+
+    <!-- FREIFLIEGENDER SPIELTITEL (Wird via CSS & Script animiert) -->
+    <h1 id="game-title" class="state-title">Simon Masurkewitsch</h1>
+
+    <!-- TITELBILDSCHIRM -->
+    <div id="title-screen" class="screen active-screen">
+        <h2>Das spielerische Kennenlernen</h2>
+        <div class="blink-text">- Klicke, um zu beginnen -</div>
+    </div>
+
+    <!-- HAUPTMENÜ -->
+    <div id="main-menu" class="screen">
+        <button id="start-game-btn" class="menu-btn">Neues Spiel</button>
+        <button id="load-game-btn" class="menu-btn">Spiel laden</button>
+        <button id="option-btn" class="menu-btn">Optionen</button>
+        <button id="credits-btn" class="menu-btn">Credits</button>
+
+        <img src="_assets/vn_assets/images/me_titlescreen.png" id="menu-char-img" alt="Simon">
+    </div>
+
+    <!-- OPTIONEN -->
+    <div id="option-screen" class="screen">
+        <h1>Spiel-Optionen</h1>
+        <input type="range" id="volume" min="0" max="100" step="1" value="100">
+        <label for="volume">Volume</label>
+        <input type="range" id="textspeed" min="0" max="100" step="1" value="100">
+        <label for="textspeed">Text-Geschwindigkeit</label>
+        <div id="back-buttons" class="back-buttons">
+            <button id="backToGame" class="menu-btn">Zurück zum Spiel</button>
+            <button id="backToMenu" class="menu-btn">Zurück zum Hauptmenü</button>
+        </div>
+    </div>
+
+    <!-- SPIEL-FENSTER -->
+    <div id="game-container" class="screen">
+        <div id="game-controls">
+            <button id="save-btn" class="control-btn">💾</button>
+            <button id="game-option-btn" class="control-btn">⚙️</button>
+            <button id="menu-btn" class="control-btn">Menü</button>
+        </div>
+        <div id="character-container">
+            <img id="sprite-0" class="character-sprite" alt="">
+            <img id="sprite-1" class="character-sprite" alt="">
+            <img id="sprite-2" class="character-sprite" alt="">
+        </div>
+        <div id="drink-button">
+            <button id="drink-btn" class="drink-btn" style="display: none;">🥤</button>
+            <button id="quest-btn" class="drink-btn" style="display: none;">Fragen</button>
+        </div>
+        <div id="choicesP">
+            <div id="choices-box"></div>
+        </div>
+        <div id="dialogue-box">
+            <div id="speaker-name"></div>
+            <div id="story-text">Lade Spiel...</div>
+        </div>
+    </div>
+
+    <script>
+        // -- SCREEN MANAGEMENT --
+        const titleScreen = document.getElementById('title-screen');
+        const mainMenu = document.getElementById('main-menu');
+        const optionScreen = document.getElementById('option-screen');
+        const gameContainer = document.getElementById('game-container');
+        const loadGameBtn = document.getElementById('load-game-btn');
+        const optionsBtn = document.getElementById('option-btn');
+        const gameOptionBtn = document.getElementById('game-option-btn');
+        const drinkBtn = document.getElementById('drink-btn');
+        const questBtn = document.getElementById('quest-btn');
+        const backToGameBtn = document.getElementById('backToGame');
+        const backToMenuBtn = document.getElementById('backToMenu');
+
+        const bgmPlayer = new Audio();
+        bgmPlayer.loop = true;
+        bgmPlayer.volume = 0.3;
+        let currentBgmSrc = "";
+
+        let currentNodeId = 1;
+        let nodeHistory = [];
+        let isDrinkUnlocked = false;
+        let isQuestUnlocked = false;
+        let previousScreen = mainMenu;
+
+        let typewriterInterval = null;
+        let isTyping = false;
+        let currentFullText = "";
+        let typingSpeed = 30;
+        let autoNodeTimeout = null;
+
+        const gameTitle = document.getElementById('game-title');
+
+        function switchScreen(screenToHide, screenToShow) {
+            screenToHide.classList.remove('active-screen');
+            screenToShow.classList.add('active-screen');
+
+            if (screenToShow === titleScreen) {
+                gameTitle.className = 'state-title';
+            } else if (screenToShow === mainMenu || screenToShow === optionScreen) {
+                gameTitle.className = 'state-menu';
+            } else {
+                gameTitle.className = 'state-hidden';
+            }
+
+            if (screenToShow === mainMenu) {
+                checkSaveState();
+                updateBgm('_assets/vn_assets/music/menubg.mp3');
+            }
+        }
+
+        function updateBgm(bgmPath) {
+            if (!bgmPath) return;
+
+            if (bgmPath === "stop") {
+                bgmPlayer.pause();
+                currentBgmSrc = "";
+                return;
+            }
+
+            if (bgmPath !== currentBgmSrc) {
+                currentBgmSrc = bgmPath;
+                bgmPlayer.src = bgmPath;
+
+                bgmPlayer.play().catch(err => {
+                    console.log("Autoplay verhindert oder Datei nicht gefunden:", err);
+                });
+            }
+        }
+
+        function preloadImages(imageUrls) {
+            imageUrls.forEach(url => {
+                const img = new Image();
+                img.src = url;
+            });
+        }
+
+        preloadImages([
+            "_assets/vn_assets/images/entrance.jpg",
+            "_assets/vn_assets/images/me_titlescreen.png",
+            "_assets/vn_assets/images/me_comein.png",
+            "_assets/vn_assets/images/me_welcome.png",
+            "_assets/vn_assets/images/me_hello.png",
+            "_assets/vn_assets/images/couch_explaining_1.jpg",
+            "_assets/vn_assets/images/couch_explaining_2.jpg",
+            "_assets/vn_assets/images/couch_explaining_3.jpg",
+            "_assets/vn_assets/images/couch_explaining_4.jpg",
+            "_assets/vn_assets/images/couch_explaining_5.jpg",
+            "_assets/vn_assets/images/couch_explaining_6.jpg",
+            "_assets/vn_assets/images/couch_friendly_1.jpg",
+            "_assets/vn_assets/images/couch_friendly_2.jpg",
+            "_assets/vn_assets/images/couch_friendly_3.jpg",
+            "_assets/vn_assets/images/couch_friendly_4.jpg",
+            "_assets/vn_assets/images/couch_friendly_5.jpg",
+            "_assets/vn_assets/images/couch_friendly_6.jpg",
+            "_assets/vn_assets/images/couch_pointing.jpg",
+            "_assets/vn_assets/images/couch_question_1.jpg",
+            "_assets/vn_assets/images/couch_serious_1.jpg",
+            "_assets/vn_assets/images/couch_tea.jpg",
+            "_assets/vn_assets/images/couch_thinking_1.jpg",
+            "_assets/vn_assets/images/couch_thinking_2.jpg",
+            "_assets/vn_assets/images/couch_thinking_3.jpg",
+            "_assets/vn_assets/images/couch_water.jpg",
+            "_assets/vn_assets/images/couch_whisper.jpg"
+        ]);
+
+        function typeWriter(text, onComplete) {
+            clearInterval(typewriterInterval);
+            storyTextElement.textContent = "";
+            currentFullText = text;
+            isTyping = true;
+
+            let index = 0;
+            typewriterInterval = setInterval(() => {
+                if (index <= text.length) {
+                    storyTextElement.textContent = text.slice(0, index);
+                    index++;
+                } else {
+                    clearInterval(typewriterInterval);
+                    isTyping = false;
+                    if (onComplete) onComplete();
+                }
+            }, typingSpeed);
+        }
+
+        function checkSaveState() {
+            const savedNode = localStorage.getItem('vn_save_node');
+            if (loadGameBtn) loadGameBtn.disabled = !savedNode;
+        }
+
+        titleScreen.addEventListener('click', () => {
+            switchScreen(titleScreen, mainMenu);
+        });
+
+        function scheduleAutoAdvance(delay) {
+            clearTimeout(autoNodeTimeout);
+            autoNodeTimeout = setTimeout(() => {
+                const node = storyNodes.find(n => n.id === currentNodeId);
+                if (node && node.nextNode !== undefined) {
+                    showNode(node.nextNode);
+                }
+            }, delay);
+        }
+
+        // --- OPTIONEN & REGLER ---
+        const volumeSlider = document.getElementById('volume');
+        const textSpeedSlider = document.getElementById('textspeed');
+
+        const savedVolume = localStorage.getItem('vn_volume');
+        if (savedVolume !== null) {
+            bgmPlayer.volume = parseFloat(savedVolume) / 100;
+        }
+
+        const savedSpeed = localStorage.getItem('vn_textspeed');
+        if (savedSpeed !== null) {
+            typingSpeed = 105 - parseInt(savedSpeed);
+        }
+
+        if (volumeSlider && textSpeedSlider) {
+            volumeSlider.value = bgmPlayer.volume * 100;
+            textSpeedSlider.value = 105 - typingSpeed;
+
+            volumeSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                bgmPlayer.volume = val / 100;
+                localStorage.setItem('vn_volume', val);
+            });
+
+            textSpeedSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value);
+                typingSpeed = 105 - val;
+                localStorage.setItem('vn_textspeed', val);
+            });
+        }
+
+        const mainOptionBtn = document.getElementById('main-option-btn') || optionsBtn;
+        if (mainOptionBtn) {
+            mainOptionBtn.addEventListener('click', () => {
+                previousScreen = mainMenu;
+                if (backToGameBtn) backToGameBtn.disabled = true;
+                switchScreen(mainMenu, optionScreen);
+            });
+        }
+
+        if (gameOptionBtn) {
+            gameOptionBtn.addEventListener('click', () => {
+                previousScreen = gameContainer;
+                if (backToGameBtn) backToGameBtn.disabled = false;
+                switchScreen(gameContainer, optionScreen);
+            });
+        }
+
+        if (backToGameBtn) {
+            backToGameBtn.addEventListener('click', () => {
+                switchScreen(optionScreen, gameContainer);
+            });
+        }
+
+        if (backToMenuBtn) {
+            backToMenuBtn.addEventListener('click', () => {
+                if (previousScreen === gameContainer) {
+                    const confirmLeave = confirm("Möchtest du wirklich zum Hauptmenü zurückkehren? Ungespeicherter Fortschritt geht verloren.");
+                    if (!confirmLeave) return;
+                }
+                switchScreen(optionScreen, mainMenu);
+            });
+        }
+
+        // --- MENÜ BUTTONS ---
+        document.getElementById('start-game-btn').addEventListener('click', () => {
+            playerName = 'Du';
+            isFormal = false;
+            isQuestUnlocked = false;
+            isDrinkUnlocked = false;
+            currentNodeId = null;
+            nodeHistory = [];
+
+            switchScreen(mainMenu, gameContainer);
+            showNode(1);
+        });
+
+        if (loadGameBtn) {
+            loadGameBtn.addEventListener('click', () => {
+                const savedNode = localStorage.getItem('vn_save_node');
+                if (savedNode) {
+                    switchScreen(mainMenu, gameContainer);
+                    showNode(parseInt(savedNode));
+                }
+            });
+        }
+
+        document.getElementById('credits-btn').addEventListener('click', () => {
+            alert("Programmiert und geschrieben von Simon Masurkewitsch!");
+        });
+
+        document.getElementById('save-btn').addEventListener('click', () => {
+            localStorage.setItem('vn_save_node', currentNodeId);
+            alert("Spielstand erfolgreich gespeichert!");
+        });
+
+        document.getElementById('menu-btn').addEventListener('click', () => {
+            const confirmLeave = confirm("Möchtest du wirklich zum Hauptmenü zurückkehren?");
+            if (confirmLeave) {
+                switchScreen(gameContainer, mainMenu);
+            }
+        });
+
+
+
+        // In-Game Spezial-Buttons
+        drinkBtn.addEventListener('click', () => {
+            saveDrinkNode = currentNodeId;
+            showNode(8000000);
+        });
+
+        questBtn.addEventListener('click', () => {
+            showNode(99999);
+        });
+
+
+        // --- SPIELELOGIK ---
+        const speakerNameElement = document.getElementById('speaker-name');
+        const storyTextElement = document.getElementById('story-text');
+        const choicesBoxElement = document.getElementById('choices-box');
+        const dialogueBoxElement = document.getElementById('dialogue-box');
+
+        let playerName = 'Du';
+        let isFormal = false;
+        let saveDrinkNode = 16;
+
+
+        const storyNodes = [
+            // INTRO
+            {
+                id: 1,
+                speaker: "Simon",
+                text: "Hey! Herzlich Willkommen zu dieser kleinen Visual-Novel! Mein Name ist Simon Masurkewitsch.",
+                bg: "_assets/vn_assets/images/entrance.jpg",
+                characters: [
+                    { position: "center", img: "_assets/vn_assets/images/me_hello.png" }
+                ],
+                bgm: "_assets/vn_assets/music/maintheme.mp3",
+                nextNode: 9000000
+            },
+            {
+                id: 9000000,
+                speaker: "Simon",
+                text: "Bevor wir starten, welche Anrede wäre angenehm?",
+                bg: "_assets/vn_assets/images/entrance.jpg",
+                characters: [
+                    { position: "center", img: "_assets/vn_assets/images/me_welcome.png" }
+                ],
+                nextNode: 9000001
+            },
+            {
+                id: 9000001,
+                speaker: "Simon",
+                text: "Bevor wir starten, welche Anrede wäre angenehm?",
+                instantText: true,
+                bg: "_assets/vn_assets/images/entrance.jpg",
+                characters: [
+                    { position: "right", img: "_assets/vn_assets/images/me_welcome.png" }
+                ],
+                choices: [
+                    { text: "Ich würde gerne gesiezt werden, danke.", nextNode: 2, setFormal: true },
+                    { text: "Duzen ist für mich in Ordnung!", nextNode: 2, setFormal: false }
+                ]
+            },
+            {
+                id: 2,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Sie sind|Du bist} also hier um mich kennenzulernen. {Kommen Sie|Komm} doch erst einmal herein!",
+                bg: "_assets/vn_assets/images/entrance.jpg",
+                characters: [
+                    { position: "left", img: "_assets/vn_assets/images/me_comein.png" }
+                ],
+                nextNode: 6000000
+            },
+            {
+                id: 6000000,
+                bg: "#000000",
+                autoAdvance: 1000,
+                nextNode: 3
+            },
+            {
+                id: 3,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Hier wären wir! Drinnen ist man ungestörter, hier kann man besser reden.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 4
+            },
+            {
+                id: 4,
+                speaker: "Simon",
+                text: "Freut mich, dass {Sie sich|du dir} die Zeit {nehmen|nimmst} und mich kennenlernen {möchten|möchtest}! Dürfte ich {Ihren|deinen} Namen erfahren?",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 5
+            },
+            {
+                id: 5,
+                speaker: "Simon",
+                text: "Freut mich, dass {Sie sich|du dir} die Zeit {nehmen|nimmst} und mich kennenlernen {möchten|möchtest}! Dürfte ich {Ihren|deinen} Namen erfahren?",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                instantText: true,
+                choices: [
+                    { text: "Klar, mein Name ist...", nextNode: 6 },
+                    { text: "Ich möchte lieber anonym bleiben.", nextNode: 7500000 }
+                ]
+            },
+            {
+                id: 6,
+                text: "Wie lautet {Ihr|dein} Name?",
+                fontStyle: "italic",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                inputType: "text",
+                instantText: true,
+                inputPlaceholder: "{Geben Sie Ihren|Gib deinen} Namen ein...",
+                choices: [
+                    { text: "Bestätigen", nextNode: 7, requireInput: true },
+                    { text: "Ich möchte doch lieber anonym bleiben...", nextNode: 7500000, resetName: "{Sie|Du}" }
+                ]
+            },
+            {
+                id: 7,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Schön {Sie|dich} kennenzulernen, {playerName}!",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 7000000
+            },
+            {
+                id: 7500000,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Das ist natürlich völlig in Ordnung!",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 7500001
+            },
+            {
+                id: 7500001,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "*flüsternd* Die Namen sind sowieso nur für die Spieler.",
+                bg: "_assets/vn_assets/images/couch_whisper.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 7000000
+            },
+            {
+                id: 7000000,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Noch ein kleiner Hinweis: {Sie können|Du kannst} den Text dieser Visual-Novel übrigens auch mit den Pfeiltasten vorwärts und auch rückwärts bewegen!",
+                bg: "_assets/vn_assets/images/couch_friendly_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 7000001
+            },
+            {
+                id: 7000001,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Also falls {Sie|du} ausversehen einen Text übrsprungen {haben|hast} oder den vorherigen Text nochmal lesen {wollen, drücken Sie|willst, drücke} einfach die linke Pfeiltaste (←)!",
+                bg: "_assets/vn_assets/images/couch_friendly_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 7000002
+            },
+            {
+                id: 7000002,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Mit der rechten Pfeiltaste (→) geht es weiter im Text!",
+                bg: "_assets/vn_assets/images/couch_friendly_4.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 10
+            },
+            {
+                id: 10,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Dürfte ich Ihnen etwas zu trinken anbieten?|Möchtest du etwas trinken?}",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 11
+            },
+            {
+                id: 11,
+                speaker: "Simon",
+                text: "{Dürfte ich Ihnen etwas zu trinken anbieten?|Möchtest du etwas trinken?}",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                instantText: true,
+                choices: [
+                    { text: "Ich hätte gerne ein Wasser.", nextNode: 12 },
+                    { text: "Könnte ich einen Tee haben?", nextNode: 13 },
+                    { text: "Nichts für mich, danke.", nextNode: 14 }
+                ]
+            },
+            {
+                id: 12,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Hier, bitte sehr! Es soll ja niemand verdursten.",
+                bg: "_assets/vn_assets/images/couch_water.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 16
+            },
+            {
+                id: 13,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Bitte sehr! Die Sorte ist 'Türkischer Apfel'. Ich hoffe, das ist in Ordnung.",
+                bg: "_assets/vn_assets/images/couch_tea.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 15
+            },
+            {
+                id: 14,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "In Ordnung. Falls {Sie|du} doch noch durst bekommen {sollten, geben Sie|solltest, gib} mir gerne Bescheid!",
+                bg: "_assets/vn_assets/images/couch_pointing.jpg",
+                bgPosition: "center top",
+                bgSize: "100% 150%",
+                nextNode: 16
+            },
+            {
+                id: 8000000,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Gerne! Was dürfte es denn sein?",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 8000001
+            },
+            {
+                id: 8000001,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Gerne! Was dürfte es denn sein?",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                instantText: true,
+                choices: [
+                    { text: "Ich hätte gerne ein Wasser.", nextNode: 8000002 },
+                    { text: "Könnte ich einen Tee haben?", nextNode: 8000003 },
+                    { text: "Ich möchte doch nichts, danke.", nextNode: 8000004 }
+                ]
+            },
+            {
+                id: 8000002,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Hier, bitte sehr! Es soll ja niemand verdursten.",
+                bg: "_assets/vn_assets/images/couch_water.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 8000006
+            },
+            {
+                id: 8000003,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Bitte sehr! Die Sorte ist 'Türkischer Apfel'. Ich hoffe, das ist in Ordnung.",
+                bg: "_assets/vn_assets/images/couch_tea.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 8000005
+            },
+            {
+                id: 8000004,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ah. In Ordnung. Wenn {Sie|du} es {sich|dir} anders {überlegen, geben Sie|überlegst, gib} mir gerne Bescheid!",
+                bg: "_assets/vn_assets/images/couch_pointing.jpg",
+                bgPosition: "center top",
+                bgSize: "100% 150%",
+                nextNode: 8000006
+            },
+            {
+                id: 8000005,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Aber da er digital ist, spielt es wohl keine große Rolle!",
+                bg: "_assets/vn_assets/images/couch_friendly_6.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 8000006
+            },
+            {
+                id: 8000006,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Also... wo waren wir noch gleich? Ach ja...",
+                bg: "_assets/vn_assets/images/couch_thinking_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                get nextNode() { return saveDrinkNode; }
+            },
+            {
+                id: 15,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Aber da er digital ist, spielt es wohl keine große Rolle!",
+                bg: "_assets/vn_assets/images/couch_friendly_6.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 16
+            },
+
+            // HAUPTTEIL
+            {
+                id: 16,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Also, kommen wir zum eigentlichen Thema: {Sie möchten|Du möchtest} mich kennenlernen!",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 17
+            },
+            {
+                id: 17,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Sie können|Du kannst} mir gerne ein paar Fragen stellen! Hierfür öffnet sich gleich eine Textbox.",
+                bg: "_assets/vn_assets/images/couch_friendly_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 18
+            },
+            {
+                id: 18,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Bitte {beachten Sie|beachte} dabei, dass meine Antwort- und Verständnis-Möglichkeiten natürlich eingeschränkt sind.",
+                bg: "_assets/vn_assets/images/couch_explaining_5.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 19
+            },
+            {
+                id: 19,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Sollte ich eine Frage falsch verstanden haben, {klicken Sie|klicke} auf den neu erschienen Knopf dort oben, um zurück zur Fragenbox zu gelangen! Das gleiche {können Sie|kannst du} natürlich tun, wenn {Sie|du} bereits genug zu einem Thema gehört hast.",
+                bg: "_assets/vn_assets/images/couch_pointing.jpg",
+                bgPosition: "center top",
+                bgSize: "100% 150%",
+                nextNode: 50
+            },
+            // FRAGENBOX
+            {
+                id: 50,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Was {möchten Sie|möchtest du} über mich wissen?",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 99999
+            },
+            {
+                id: 99999,
+                fontStyle: "italic",
+                text: "{Schreiben Sie Ihre|Schreibe deine} Frage an mich in die Textbox.",
+                inputType: "text",
+                instantText: true,
+                inputPlaceholder: "{Geben Sie|Gib} eine Frage ein...",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                keywords: [
+                    {
+                        words: ["projekt", "projekte", "code", "arbeit", "arbeiten", "coding", "entwickeln", "entwicklung", "javascript","programmiersprache", "projektarbeit", "programmierung"],
+                        nextNode: 200
+                    },
+                    {
+                        words: ["erfahrung", "berufserfahrung", "beruf", "jobs", "job", "tätigkeiten", "ausbildung"],
+                        nextNode: 300
+                    },
+                    {
+                        words: ["hobbys", "hobby", "zocken", "freizeit", "freizeitaktivität", "freizeitaktivitäten", "interessen", "privat", "privatleben", "freizeitbeschäftigung", "freizeitbeschäftigung"],
+                        nextNode: 400
+                    },
+                    {
+                        words: ["motivation", "berufswahl", "motiviert", "leidenschaft", "informatiker", "fachinformatiker", "anwendungsentwicklung", "ziele", "entscheidung"],
+                        nextNode: 500
+                    },
+                    {
+                        words: ["kontakt", "mail", "email", "erreichen", "telefon", "telefonnr", "telefonnummer", "mobilnummer", "adresse", "anschrift", "kontaktdaten", "handynummer"],
+                        nextNode: 600
+                    },
+                    {
+                        words: ["zukunft", "ziele", "ziel", "weiterentwicklung", "perspektive", "perspektiven", "langfristig"],
+                        nextNode: 700
+                    }
+                ],
+                fallbackNode: 9999,
+                choices: [
+                    { text: "Bestätigen", requireInput: true },
+                    { text: "Ich habe keine weiteren Fragen.", nextNode: 10000000},
+                ]
+            },
+            // FALLBACK
+            {
+                id: 9999,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Entschuldigung, das habe ich leider nicht verstanden.",
+                bg: "_assets/vn_assets/images/couch_question_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 10000
+            },
+            {
+                id: 10000,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Als kleine Hilfe: {Sie können|Du kannst} mich beispielsweise nach meinen bisherigen Projekten, Hobbys oder Kontaktmöglichkeiten fragen.",
+                bg: "_assets/vn_assets/images/couch_whisper.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 10001
+            },
+            {
+                id: 10001,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Es gibt auch noch mehr mögliche Fragen. {Probieren Sie|Probiere} einfach weiter aus! Es gibt nichts zu verlieren!",
+                bg: "_assets/vn_assets/images/couch_friendly_4.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 50
+            },
+
+            //FRAGE 1: Bisherige Projekte
+            {
+                id: 200,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Sie möchten|Du möchtest} wissen, was ich bisher so programmiert habe?",
+                bg: "_assets/vn_assets/images/couch_explaining_5.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 221
+            },
+            {
+                id: 221,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Meine bisherigen Projekte belaufen sich auf Hobby-Projekte.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 201
+            },
+            {
+                id: 201,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Das bedeutet, ich habe sie in erster Linie für mich programmiert, aus Spaß an diesem bisherigen Hobby.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 202
+            },
+            {
+                id: 202,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Da ich mir dadurch das Programmieren auch selbst beigebracht habe, sind sie an manchen Stellen leider auch etwas unoptimiert. Aber ich arbeite daran!",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 203
+            },
+            {
+                id: 203,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Die Hauptprogrammiersprachen, die ich dafür verwendet habe sind JavaScript, HTML und CSS.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 204
+            },
+            {
+                id: 204,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Und ja, ich weiß, eigentlich sind HTML und CSS keine richtigen Programmiersprachen, aber ich finde, sie gehören irgendwie dazu!",
+                bg: "_assets/vn_assets/images/couch_explaining_4.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 205
+            },
+            {
+                id: 204,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Meine wohl relevantesten Projekte wären ein Twitch-ChatBot, eine Game-Extension für das Spiel Minecraft und dieses Portfolio.",
+                bg: "_assets/vn_assets/images/couch_friendly_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 205
+            },
+            {
+                id: 205,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest du} etwas mehr über ein bestimmtes Projekt hören?",
+                bg: "_assets/vn_assets/images/couch_question_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 206
+            },
+            {
+                id: 206,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest du} etwas mehr über ein bestimmtes Projekt hören?",
+                bg: "_assets/vn_assets/images/couch_question_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                instantText: true,
+                choices: [
+                    { text: "Ein Twitch-ChatBot? Bist du ein Streamer?", nextNode: 210},
+                    { text: "Eine Game-Extension? Klingt interessant.", nextNode: 230},
+                    { text: "Erzähl mir mehr über die Programmierung dieses Portfolios.", nextNode: 250},
+                    { text: "Warum hast du dich für JavaScript entschieden?", nextNode: 270},
+                    { text: "Ich brauche keine weiteren Details.", nextNode: 290},
+                ]
+            },
+            //TWITCH-CHATBOT
+            {
+                id: 210,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ja, in der Tat! Ich streame nebenbei aus Spaß. Ich bin aber nicht gerade erfolgreich, aber das wollte ich in der Branche auch nie sein.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 211
+            },
+            {
+                id: 211,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Den Twitch-ChatBot habe ich programmiert, weil mir die meisten kostenlosen ChatBots, die es zu der Zeit gab, zu wenig zu bieten hatten.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 212
+            },
+            {
+                id: 212,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ich wollte mehr Flexibilität und so dachte ich mir, ich programmiere meinen eigenen ChatBot. Dies war auch mein erstes größeres Projekt.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 213
+            },
+            {
+                id: 213,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Es hat mir riesen Spaß gemacht zu lernen, was man alles mit JavaScript machen kann und mein Gehirn sprudelte vor Ideen, die ich umsetzen wollte.",
+                bg: "_assets/vn_assets/images/couch_explaining_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 214
+            },
+            {
+                id: 214,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Im Laufe der Zeit habe ich den ChatBot immer mehr erweitert und nun ist er sogar ein Maskottchen, welches ab und an in Form eines roten Pandas, im Stream zu sehen ist.",
+                bg: "_assets/vn_assets/images/couch_explaining_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 215
+            },
+            {
+                id: 215,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Dafür habe ich den ChatBot mit einem animierten Sprite verknüpft und ihn so auch visuell ins Leben gerufen.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 216
+            },
+            {
+                id: 216,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ich bin stolz auf diese Arbeit, vor allem, da es mein erstes größeres Projekt war. Und deswegen wird der ChatBot auch in jedem Stream genutzt!",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 217
+            },
+            {
+                id: 217,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest du} etwas mehr über ein anderes Projekt hören?",
+                bg: "_assets/vn_assets/images/couch_question_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 220
+            },
+            {
+                id: 220,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest du} etwas mehr über ein anderes Projekt hören?",
+                bg: "_assets/vn_assets/images/couch_question_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                instantText: true,
+                choices: [
+                    { text: "Eine Game-Extension? Klingt interessant.", nextNode: 230},
+                    { text: "Erzähl mir mehr über die Programmierung dieses Portfolios.", nextNode: 250},
+                    { text: "Warum hast du dich für JavaScript entschieden?", nextNode: 270},
+                    { text: "Ich brauche keine weiteren Details.", nextNode: 290},
+                ]
+            },
+
+            //MINECRAFT GAME-EXTENSION: RNJESUS
+            {
+                id: 230,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "In der Tat. Einige würden es vielleicht als Mod bezeichnen, aber diese Beschreibung trifft nicht ganz zu, finde ich.",
+                bg: "_assets/vn_assets/images/couch_explaining_6.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 231
+            },
+            {
+                id: 231,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Wer Mods kennt, weiß, dass diese häufig voraussetzen, dass zusätzliche Dateien im Spieleordner hinzugefügt werden.",
+                bg: "_assets/vn_assets/images/couch_explaining_6.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 232
+            },
+            {
+                id: 232,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Dadurch werden im Spiel Daten verändert und abhängig von der Mod. Also können das Spielstände, die mit der Mod generiert wurden, danach ohne die Mod nicht laufen.",
+                bg: "_assets/vn_assets/images/couch_explaining_5.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 233
+            },
+            {
+                id: 233,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Meine Extension läuft extern und beeinflusst dadurch nicht das Basis-Spiel. Dadurch wäre es theoretisch auch mit vielen Mods kombinierbar.",
+                bg: "_assets/vn_assets/images/couch_explaining_5.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 234
+            },
+            {
+                id: 234,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Die Idee hinter diesem Programm ist eine Art Herausforderungs-Modus. Man setzt sich selbst ein übliches Ziel im Spiel und das Programm erschwert die Erreichung dieses Ziels ein wenig.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 235
+            },
+            {
+                id: 235,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Dabei führt das Programm für jeden Spieler alle X Sekunden (kann selbst bestimmt werden) einen zufälligen Befehl aus, der für die Spieler entweder positiv, neutral oder negativ sein kann. Meistens das Letzte.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 236
+            },
+            {
+                id: 236,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Der eigentliche Spaß kommt hierbei kommt durch den schieren Chaos-Faktor und die Vielfalt der Befehle.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 237
+            },
+            {
+                id: 237,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "So kann es im Spiel plötzlich anfangen Schweine zu regnen oder auch Geld. Eine Wand taucht plötzlich vor einem auf und es gibt kein durchkommen oder man ist mit einem Mal von dutzenden Feinden umzingelt.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 238
+            },
+            {
+                id: 238,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Da es eine riesige Vielfalt an Befehlen gibt, die alle etwas komplett anderes machen, erhöht sich dadurch auch die Wiederspeilrate erheblich. Kein Spieldurchlauf ist wie der Letzte.",
+                bg: "_assets/vn_assets/images/couch_friendly_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 239
+            },
+            {
+                id: 239,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ich habe hierfür einen vorgertigen Bot als Dependency eingefügt, eine Art Dummy-Spieler, der die Befehle ausführt.",
+                bg: "_assets/vn_assets/images/couch_explaining_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 240
+            },
+            {
+                id: 240,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Die Befehle selbst sind eine Kombination aus JavaScript und Minecraft-Console-Code, welcher in das Script integriert wird.",
+                bg: "_assets/vn_assets/images/couch_explaining_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 241
+            },
+            {
+                id: 241,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Mit Hilfe von HTML und CSS habe ich dann noch ein Programmfenster generieren lassen, in dem verschiedene Dinge abgefragt werden. Zum Beispiel Spielernamen, Server-Adresse, wie häufig Befehle ausgeführt werden sollen und eine Art Schwierigkeitsgrad.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 242
+            },
+            {
+                id: 242,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Das Programm ist auf GitHub öffentlich zugänglich, auch wenn ich es eigentlich nur als Herausforderung für mich und ein paar Freunde geschrieben habe.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 243
+            },
+            {
+                id: 243,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ich hatte sehr viel Spaß dabei mir Befehle auszudenken und den Minecraft-Code mit JavaScript kreativ zu kombinieren.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 244
+            },
+            {
+                id: 244,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Dabei wurde ich von meinen Freunden bei dem ein oder anderen Befehl gefragt, wie so etwas überhaupt möglich sei! Und das ganz ohne Mods!",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 245
+            },
+            {
+                id: 245,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Und genau das ist für mich ein wichtiger Punkt beim Programmieren: Dinge zu erschaffen, die wie Magie wirken!",
+                bg: "_assets/vn_assets/images/couch_friendly_4.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 246
+            },
+            {
+                id: 246,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest du} etwas mehr über ein anderes Projekt hören?",
+                bg: "_assets/vn_assets/images/couch_question_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 248
+            },
+
+            {
+                id: 248,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest du} etwas mehr über ein anderes Projekt hören?",
+                bg: "_assets/vn_assets/images/couch_question_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                instantText: true,
+                choices: [
+                    { text: "Ein Twitch-ChatBot? Bist du ein Streamer?", nextNode: 210},
+                    { text: "Erzähl mir mehr über die Programmierung dieses Portfolios.", nextNode: 250},
+                    { text: "Warum hast du dich für JavaScript entschieden?", nextNode: 270},
+                    { text: "Ich brauche keine weiteren Details.", nextNode: 290},
+                ]
+            },
+
+            //DIESES PORTFOLIO ALS PROGRAMM
+            {
+                id: 250,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Dieses Portfolio hat ganz simpel angefangen: Mit dem Wunsch ein modernes, digitales Portfolio zu haben.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 251
+            },
+            {
+                id: 251,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Dabei ging es mir erst einmal um die Grundlagen. Hierfür habe ich mir mit Hilfe von AI eine Basis generieren lassen.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 252
+            },
+            {
+                id: 252,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "In diesem Zuge ist es für mich auch wichtig zu erwähnen, dass ich AI als Werkzeug sehe und nicht als Lösung.",
+                bg: "_assets/vn_assets/images/couch_explaining_4.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 253
+            },
+            {
+                id: 253,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Das heißt, ich benutze AI um meine Ziele schneller zu erreichen, nicht damit sie mir alles abnimmt.",
+                bg: "_assets/vn_assets/images/couch_explaining_4.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 254
+            },
+            {
+                id: 254,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "AI ist ein gutes Tool, um Dinge besser zu verstehen und schneller zu arbeiten. Aber ich möchte auch selbst verstehen, was ich programmiere, das hat bei mir oberste Priorität.",
+                bg: "_assets/vn_assets/images/couch_explaining_6.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 255
+            },
+            {
+                id: 255,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Denn für mich gilt: MIT AI programmieren und NICHT VON AI programmieren lassen!",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 256
+            },
+            {
+                id: 256,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Als ich vor ein paar Jahren mit dem Programmieren anfing, gab es keine AI und es hat trotzdem alles irgendwie funktioniert. Diesen Standard möchte ich beibehalten, denn wer weiß wie lange AI uns noch kostenlos zur Verfügung steht.",
+                bg: "_assets/vn_assets/images/couch_serious_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 257
+            },
+            {
+                id: 257,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Das gesagt, sollte man natürlich auch nicht auf ein Tool verzichten, was viele Prozesse schneller macht. Aber wie dem auch sei, zurück zum Portfolio.",
+                bg: "_assets/vn_assets/images/couch_serious_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 258
+            },
+            {
+                id: 258,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Die Basis wurde wie gesagt von AI geschaffen, aber dieses Standard-Design und der Aufbau haben mir nicht zugesagt, weshalb ich es meinen Wünschen entsprechend angepasst habe.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 259
+            },
+            {
+                id: 259,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Als ich damit fertig war, dachte ich, irgendetwas fehlt. Eine Besonderheit, ein USP wenn man so will.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 260
+            },
+            {
+                id: 260,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Da kam mir die Idee für dieses Visual-Novel-Spiel. Wer stellt sich schon selbst mittels eines Spiels vor!",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 261
+            },
+            {
+                id: 261,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Und so fing ich an mir ein Konzept zu überlegen, dass ich immer weiter ausgebaut habe und letztendlich auch umgesetzt.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 262
+            },
+            {
+                id: 262,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Auch hier habe ich AI zur Hilfe genommen, um Code zu schreiben, den ich so noch nicht kannte oder um meinen Code zu optimieren,",
+                bg: "_assets/vn_assets/images/couch_friendly_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 263
+            },
+            {
+                id: 263,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Mir war dabei allerdings auch wichtig, dass ich den Code der AI weiterhin verstehe und habe mir alles erklären lasse, was nicht selbstverständlich war.",
+                bg: "_assets/vn_assets/images/couch_friendly_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 264
+            },
+            {
+                id: 264,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Am liebsten wäre es mir, wenn ich irgendwann Code komplett aus dem Kopf schreiben könnte, aber mir ist bewusst, dass das die Wenigsten tun.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 265
+            },
+            {
+                id: 265,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Nichtsdestotrotz, möchte ich so viel es geht lernen! Denn je mehr ich weiß, umso mehr kann ich meine Kreativität im Code spielen lassen!",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 266
+            },
+            {
+                id: 266,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest du} etwas mehr über ein weiteres Projekt hören?",
+                bg: "_assets/vn_assets/images/couch_question_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 267
+            },
+
+            {
+                id: 267,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest du} etwas mehr über ein weiteres Projekt hören?",
+                bg: "_assets/vn_assets/images/couch_question_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                instantText: true,
+                choices: [
+                    { text: "Ein Twitch-ChatBot? Bist du ein Streamer?", nextNode: 210},
+                    { text: "Eine Game-Extension? Klingt interessant.", nextNode: 230},
+                    { text: "Warum hast du dich für JavaScript entschieden?", nextNode: 270},
+                    { text: "Ich brauche keine weiteren Details.", nextNode: 290},
+                ]
+            },
+
+            //WARUM JAVASCRIPT
+            {
+                id: 270,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Der wichtigste Punkt bei der Auswahl einer Programmiersprache ist für mich: Was möchte ich machen?",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 271
+            },
+            {
+                id: 270,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Da mein erstes Projekt ein Twitch-ChatBot war, musste die Programmiersprache flexibel, aber auch einfach zu verstehen sein, damit ich sie schnell lernen kann.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 271
+            },
+            {
+                id: 271,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "JavaScript und Python erfüllen diese Kriterien meiner Meinung nach am besten.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 272
+            },
+            {
+                id: 272,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Warum es dann am Ende JavaScript geworden ist, liegt einzig und allein an der besseren Web-Implementierung, die für den ChatBot nötig war.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 273
+            },
+            {
+                id: 273,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Als ich dann etwas später die Game-Extension für Minecraft angefangen habe, bin ich bei JavaScript geblieben, einfach aus dem Grund, weil ich diese Sprache schon kannte.",
+                bg: "_assets/vn_assets/images/couch_explaining_5.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 274
+            },
+            {
+                id: 274,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Rückblickend wäre hierfür Python womöglich besser geeignet gewesen, aber alles funktioniert in dem Programm so, wie ich es wollte, und die Performance stimmt auch.",
+                bg: "_assets/vn_assets/images/couch_explaining_5.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 275
+            },
+            {
+                id: 275,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Zum Lernen ist natürlich jede Sprache gut geeignet, da der größte Unterschied in den meisten Fällen ja nur Syntax ist, welche schnell gelernt ist.",
+                bg: "_assets/vn_assets/images/couch_explaining_6.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 276
+            },
+
+            {
+                id: 276,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest du} etwas mehr über ein bestimmtes Projekt hören?",
+                bg: "_assets/vn_assets/images/couch_question_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 277
+            },
+
+            {
+                id: 277,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest du} etwas mehr über ein bestimmtes Projekt hören?",
+                bg: "_assets/vn_assets/images/couch_question_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                instantText: true,
+                choices: [
+                    { text: "Ein Twitch-ChatBot? Bist du ein Streamer?", nextNode: 210},
+                    { text: "Eine Game-Extension? Klingt interessant.", nextNode: 230},
+                    { text: "Erzähl mir mehr über die Programmierung dieses Portfolios.", nextNode: 250},
+                    { text: "Ich brauche keine weiteren Details.", nextNode: 290},
+                ]
+            },
+
+            {
+                id: 290,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Alles klar! {Möchten Sie|Möchtest du} mir dann eine weitere Frage stellen?",
+                bg: "_assets/vn_assets/images/couch_question_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 99999
+            },
+
+            //FRAGE 2: Bisherige Berufserfahrung
+            {
+                id: 300,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Sie möchten|Du möchtest} etwas über meine bisherige Berufserfahrung wissen?",
+                bg: "_assets/vn_assets/images/couch_question_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 301
+            },
+            {
+                id: 301,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Bevor ich mich für eine Umschulung zum Fachinformatiker der Anwendungsentwicklung entschieden habe, war ich Foto- & Videograf.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 302
+            },
+            {
+                id: 302,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Meine Berufserfahrung in der IT beschränkt sich daher auf meine Projekte und das, was ich in der Umschulung bisher gelernt habe.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 303
+            },
+            {
+                id: 303,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest Du} etwas mehr darüber hören?",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 304
+            },
+            {
+                id: 304,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest Du} etwas mehr darüber hören?",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                instantText: true,
+                choices: [
+                    { text: "Erzähl mir etwas mehr über deinen bisherigen Berufweg als Foto- & Videograf.", nextNode: 310},
+                    { text: "Wie kamst du auf den Wechsel vom Foto- & Videografen zum Fachinformatiker?", nextNode: 350},
+                    { text: "Mehr brauche ich momentan nicht wissen.", nextNode: 290},
+                ]
+            },
+            //FOTO- UND VIDEOGRAF
+            {
+                id: 310,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Gerne. {Sie müssen|Du musst} wissen, die Foto- und Videografie ist ebenfalls eine meiner Leidenschaften.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 311
+            },
+            {
+                id: 311,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ich bin durch und durch ein kreativer Mensch und versuche mich auf alle möglichen Weisen kreativ auszudrücken.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 312
+            },
+            {
+                id: 312,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Mit der Fotobearbeitung habe ich damals angefangen, als ich mich selbst so darstellen wollte, wie ich gerne wäre.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 313
+            },
+            {
+                id: 313,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Das war in meiner Pubertät und ich war ein wenig auf dem Edgy-Schiene. Düstere Gedanken, dunkle Outfits und so weiter...",
+                bg: "_assets/vn_assets/images/couch_friendly_6.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 314
+            },
+            {
+                id: 314,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Womöglich sollte mir diese Phase peinlich sein, aber ganz ehrlich, so etwas hat doch jeder durchgemacht auf die ein oder andere Art und Weise.",
+                bg: "_assets/vn_assets/images/couch_friendly_6.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 315
+            },
+            {
+                id: 315,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Irgendwann habe ich dann angefangen YouTube-Videos zu machen. Zunächst von allem möglichen, dann von Computer-Spielen. Und so kam dann auch das Video-Editing dazu.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 316
+            },
+            {
+                id: 316,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Bevor ich mich versah, war dies mein hauptsächliches kreatives Outlet und ich wurde immer besser.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 317
+            },
+            {
+                id: 317,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Irgendwann habe ich dann zufällig Kontakt zu E-Sports Teams bekommen und bin in diese Szene als Videoeditor und Kameramann hereingerutscht.",
+                bg: "_assets/vn_assets/images/couch_explaining_4.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 318
+            },
+            {
+                id: 318,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Es war in erster Linie Gelgenheitsarbeit, auch wenn die Gelegenheiten sehr häufig waren. Das hat zwar Spaß gemacht, aber ich wollte schon etwas festes haben.",
+                bg: "_assets/vn_assets/images/couch_explaining_4.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 319
+            },
+            {
+                id: 319,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Da ich zu dieser Zeit nebenbei auch studiert habe - Fächer Medienwissenschaften und Philosophie - mir diese aber zu theoretisch waren, habe ich es mich für einige praktische Stellen beworben.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 320
+            },
+            {
+                id: 320,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Letztendlich habe ich eine Stelle als Werkstudent in Düsseldorf gefunden, wo ich als Foto- und Videograf tätig sein konnte.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 321
+            },
+            {
+                id: 321,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Es war eine Firma mit flachen Hierarchien, wodurch ich trotz meines Status als Werkstudent, als vollwertiges Mitglied der Firma behandelt wurde und dementsprechend auch eine eigene Verantwortung getragen habe.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 322
+            },
+            {
+                id: 322,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Mein ehemaliger Chef hätte mich damals auch gerne übernommen, doch da die Firma von einem größeren Konzern aufgekauft wurde, welcher einen Einstellstopp verhangen hat, war dies leider nicht möglich.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 323
+            },
+            {
+                id: 323,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Zumindest aber wurde mein Vertrag verlängert, und danach wurde ich weiterhein als Freelancer vor der selbigen Firma beauftragt, bis kurz vor dem Ende des nun mehr Tochterunternehmen.",
+                bg: "_assets/vn_assets/images/couch_explaining_5.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 324
+            },
+            {
+                id: 324,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ich habe dann versucht mich eine Zeitlang als Freelancer durchzuschlagen, aber wie auch schon zuvor wusste ich, dass dies nichts für mich auf Dauer ist.",
+                bg: "_assets/vn_assets/images/couch_explaining_5.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 325
+            },
+            {
+                id: 325,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ich arbeite lieber in einem Team, in dem man zwar selbst Verantwortung hat, aber auch mal andere um Rat fragen kann oder mal selbst um Rat gebeten wird.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 326
+            },
+            {
+                id: 326,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Falls {Sie|du} mal einige meiner Foto- & Videografie Arbeiten sehen {möchten, geben Sie|möchtest, gib} mir gerne Bescheid!",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 327
+            },
+            {
+                id: 327,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Vielleicht erstelle ich auch mal einen kleinen Unterpunkt im Portfolio hierfür. Zur Zeit dieser Visual-Novel ist das allerdings noch nicht geschehen.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 328
+            },
+            {
+                id: 328,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest Du} noch etwas wissen?",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 329
+            },
+
+            {
+                id: 329,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest Du} noch etwas wissen?",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                instantText: true,
+                choices: [
+                    { text: "Wie kamst du auf den Wechsel vom Foto- & Videografen zum Fachinformatiker?", nextNode: 350},
+                    { text: "Mehr brauche ich momentan nicht wissen.", nextNode: 290},
+                ]
+            },
+
+            //WECHSEL IM BERUF
+            {
+                id: 350,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Mir war es immer wichtig etwas Kreatives zu machen. Ich habe eine rege Fantasie und die muss ich ausleben können!",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 351
+            },
+            {
+                id: 351,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Der Beruf als Foto- & Videograf bietet dies natürlich wunderbar, allerding wird eine feste Stelle in diesem Beruf zu bekommen immer schwieriger.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 352
+            },
+            {
+                id: 352,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Deswegen wollte ich mich beruflich etwas breiter aufstellen und die IT-Branche ist nach wie vor gefragt.",
+                bg: "_assets/vn_assets/images/couch_explaining_4.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 353
+            },
+            {
+                id: 353,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ich habe mich bereits in der Schule für die Informatik interessiert und war immer begeistert davon, wie kreativ man sich in diesem Bereich ausleben kann.",
+                bg: "_assets/vn_assets/images/couch_explaining_4.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 354
+            },
+            {
+                id: 354,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Mancher würde sich wundern, da alles so logisch wirkt - ein weiterer Punkt, den ich übrigens liebe, da ich ebenfalls ein sehr logisch denkender Mensch bin.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 355
+            },
+            {
+                id: 355,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Aber gerade die Verknüpfungen von logischen Mechanismen bringt die Kreativität hervor. Das Entdecken dieser Verknüpfungen und sie zu optimieren, macht mir unglaublichen Spaß!",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 356
+            },
+            {
+                id: 356,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Es war zwar nicht meine erste Berufswahl, aber ich denke, sie hätte es ursprünglich sein sollen. Denn logische Rätsel zu lösen hat mir auch schon immer genauso viel Spaß bereitet, wie die Kreativität.",
+                bg: "_assets/vn_assets/images/couch_thinking_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 357
+            },
+            {
+                id: 357,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Und ganz ehrlich: Welcher Beruf fasst beide Dinge besser zusammen als der Fachinformatiker für Anwendungsentwicklung?",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 358
+            },
+            {
+                id: 358,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Interessanter Weise musste ich beim Videoediting sogar ebenfalls ein wenig 'programmieren'. Denn in Adobe After-Effects und Premiere Pro kann man viele Animationen durch Code-Zeilen erzeugen.",
+                bg: "_assets/vn_assets/images/couch_friendly_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 359
+            },
+            {
+                id: 359,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Aber die Vielfalt war dort dann doch ein wenig beschränkt, da einem Plugins die meiste Arbeit durch Knöpfe und Regler bereits abgenommen haben. Wie dem auch sei.",
+                bg: "_assets/vn_assets/images/couch_explaining_4.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 360
+            },
+            {
+                id: 360,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Da ich mich nun auf die Informatik fokussiere, rückt die Foto- & Videografie wieder auf den Platz eines Hobbys und die Informatik, die zuvor nur ein Hobby war, ist nun mein Berufswunsch.",
+                bg: "_assets/vn_assets/images/couch_explaining_4.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 361
+            },
+            {
+                id: 361,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest Du} noch etwas wissen?",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 36
+            },
+
+            {
+                id: 304,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest Du} noch etwas wissen?",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                instantText: true,
+                choices: [
+                    { text: "Erzähl mir etwas mehr über deinen bisherigen Berufweg als Foto- & Videograf.", nextNode: 310},
+                    { text: "Mehr brauche ich momentan nicht wissen.", nextNode: 290},
+                ]
+            },
+
+            //FRAGE 3: Hobbys & Freizeit
+            {
+                id: 400,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Sie möchten|Du möchtest} etwas über meine Hobbys und Freizeit erfahren? Gerne!",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 401
+            },
+            {
+                id: 401,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ich würde behaupten, dass ich in meinen Hobbies und Freizeit-Aktivitäten relativ vielfältig aufgestellt bin.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 402
+            },
+            {
+                id: 402,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Das soll heißen, ich kann für viele Dinge eine Leidenschaft entwickeln, allerdings ist der Zeitfaktor ein großes Problem.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 403
+            },
+            {
+                id: 403,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Momentan steht die Umschulung und das Lernen für mich an erster Stelle und so verbringe ich auch viel Freizeit mit dem Programmieren.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 404
+            },
+            {
+                id: 404,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Meine Hobbys habe ich dadurch natürlich nicht ganz aufgegeben.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 405
+            },
+            {
+                id: 405,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Zu meinen wohl für mich wichtigsten Hobbys gehören meine YouTube-Videos und meine Musik, die ich komponiere. Aber auch der soziale Kontakt darf nicht fehlen!",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 406
+            },
+            {
+                id: 406,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Hierfür treffe ich mich mit Freunden, meist zum zocken, aber auch für Aktivitäten außerhalb. Dabei machen wir, was auch immer uns in den Sinn kommt.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 407
+            },
+            {
+                id: 407,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Seit etwa einem Jahr leite ich darüberhinaus noch eine Dungeons & Dragons Gruppe als DM (DungeonMaster). Das ist ein klassiches Pen-and-Paper Fantasy-Rollenspiel.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 408
+            },
+            {
+                id: 408,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Falls {Sie|du} mehr wissen {möchten|möchtest}, kann ich natürlich noch ein wenig weiter ausholen.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 409
+            },
+            {
+                id: 409,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest du} zu einem Thema mehr hören?",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 410
+            },
+            {
+                id: 410,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest du} zu einem Thema mehr hören?",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                instantText: true,
+                choices: [
+                    { text: "Erzähl mir etwas mehr über deine YouTube-Videos.", nextNode: 420},
+                    { text: "Du machst Musik? Da möchte ich gerne mehr drüber hören.", nextNode: 440},
+                    { text: "Dungeons & Dragons? Erzähl mir mehr!", nextNode: 460},
+                    { text: "Was machst du so mit deinen Freunden?", nextNode: 480},
+                    { text: "Das reicht mir bereits als Info.", nextNode: 411},
+                ]
+            },
+
+            {
+                id: 411,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "In Ordnung. Über meine Hobbys könnte ich stundenlang reden! Aber darum geht es hier ja nicht.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 290
+            },
+
+            //YOUTUBE-VIDEOS
+            {
+                id: 420,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Das hat ursprünglich damit angefangen, dass ein primäres Hobby von mir und meinen Freunden das Zocken am PC ist.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 421
+            },
+            {
+                id: 421,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ich muss gestehen, wir haben in unserer Kindheit und Jugend wohl viel zu viel Zeit am PC verbracht. Das ist nichts, was ich unbedingt bereue, da ich dennoch sehr viel Spaß hatte.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 422
+            },
+            {
+                id: 422,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Wir haben viele Dinge erlebt, von denen wir uns im Nachhinein dachte, es wäre schön so etwas auf Video zu haben! Und dann habe ich irgendwann mit dem Streamen angefangen, nur aus diesem Grund.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 423
+            },
+            {
+                id: 423,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Nach einiger Zeit dachte ich, warum es nicht mal als Let's-Player versuchen - ich habe zu dieser Zeit viele solcher YouTuber geschaut.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 424
+            },
+            {
+                id: 424,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ich war nie sonderlich erfolgreich mit meinen Videos, aber es hat dennoch viel Spaß gemacht, sie zu produzieren und editieren.",
+                bg: "_assets/vn_assets/images/couch_friendly_6.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 426
+            },
+            {
+                id: 426,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Aber neben dem Spaß, hat es mir noch einige andere wichtige Dinge gebracht.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 427
+            },
+            {
+                id: 427,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Einerseits habe ich das richtige 'Auftreten' gelernt, mit Selbstvertrauen und Charisma, egal wie 'verrückt' man sich anstellt.",
+                bg: "_assets/vn_assets/images/couch_friendly_4.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 428
+            },
+            {
+                id: 428,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Andererseits hilft es unglaublich, wenn man längere Zeit mit jemandem redet, auch wenn dieser 'jemand' das Objektiv einer Kamera ist. Man lernt besser zu reflektieren und das hat mir ungemein geholfen.",
+                bg: "_assets/vn_assets/images/couch_friendly_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 429
+            },
+            {
+                id: 429,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Aus diesen beiden Gründen und aus dem Spaß, den es mir bereitet, würde ich dieses Hobby auch nie aufgeben wollen.",
+                bg: "_assets/vn_assets/images/couch_friendly_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 430
+            },
+
+            {
+                id: 430,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest du} noch zu einem anderen Thema mehr hören?",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 431
+            },
+
+            {
+                id: 431,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest du} noch zu einem anderen Thema mehr hören?",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                instantText: true,
+                choices: [
+                    { text: "Du machst Musik? Da möchte ich gerne mehr drüber hören.", nextNode: 440},
+                    { text: "Dungeons & Dragons? Erzähl mir mehr!", nextNode: 460},
+                    { text: "Was machst du so mit deinen Freunden?", nextNode: 480},
+                    { text: "Das reicht mir bereits als Info.", nextNode: 411},
+                ]
+            },
+
+            //MEINE MUSIK
+            {
+                id: 440,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ja! Die Musik ist bereits sehr lange ein weiteres meiner kreativen Outlets.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 441
+            },
+            {
+                id: 441,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Schon Ende der Grundschule habe ich angefangen Keyboard-Unterricht zu nehmen und das habe ich bis zur 11. Klasse.",
+                bg: "_assets/vn_assets/images/couch_friendly_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 442
+            },
+            {
+                id: 442,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ich war leider kein Musterschüler und so konnte ich zwar einiger Maßen gut spielen, war aber nie ein Konzert-Pianist.",
+                bg: "_assets/vn_assets/images/couch_friendly_6.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 443
+            },
+            {
+                id: 443,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Dennoch habe ich viel über die Musik-Theorie gelernt und das hat mir später geholfen, als ich vor ein paar Jahren angefangen habe, mittels eines Programms namens FL-Studio, meine eigene Musik zu komponieren.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 444
+            },
+            {
+                id: 444,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Das Genre der Musik ist dabei Schwer einzuordnen. Ich selbst bezeichne es gerne als Independent-Electronic-Game-Music. Ein Programm wiederum hat Elemente von Chiptune und Trance erkannt, aber so ganz passt das nicht, wie ich finde.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 445
+            },
+            {
+                id: 445,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Wenn es {Sie|dich} interessieren sollte, {finden Sie|findest du} meine Music auf YouTube. Der Kanal heißt 'Scyren Production' (der mit der Maske :D).",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 446
+            },
+            {
+                id: 446,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Diese Musik ist ganz OHNE AI gemacht. Ich sage das deshalb, weil ich vor kurzem AI Musik für mich ebenfalls entdeckt habe.",
+                bg: "_assets/vn_assets/images/couch_friendly_4.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 447
+            },
+            {
+                id: 447,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ich trenne dies strikt von meiner anderen Musik. AI-Musik bietet mir allerdings etwas anderes was mir Spaß macht: Die Kreativität am Schreiben.",
+                bg: "_assets/vn_assets/images/couch_friendly_4.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 448
+            },
+            {
+                id: 448,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "So schreibe ich Song-Texte inspiriert durch bekannte Fantasy-Figuren und erwecke die reinen Texte mit AI zum Leben.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 449
+            },
+            {
+                id: 449,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Danach erstelle ich, basierend auf den Songs, passende Bilder, die ich dann mit Photoshop und AfterEffects in 2.5D-Videos umwandle.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 450
+            },
+            {
+                id: 450,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ich nutze also AI, versuche aber dennoch möglichst viel Eigenarbeit einfließen zu lassen.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 451
+            },
+            {
+                id: 451,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest du} noch zu einem anderen Thema mehr hören?",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 452
+            },
+
+            {
+                id: 452,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest du} noch zu einem anderen Thema mehr hören?",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                instantText: true,
+                choices: [
+                    { text: "Erzähl mir etwas mehr über deine YouTube-Videos.", nextNode: 420},
+                    { text: "Dungeons & Dragons? Erzähl mir mehr!", nextNode: 460},
+                    { text: "Was machst du so mit deinen Freunden?", nextNode: 480},
+                    { text: "Das reicht mir bereits als Info.", nextNode: 411},
+                ]
+            },
+
+            //D&D
+            {
+                id: 460,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Dungeons and Dragons, oder auch kurz D&D, ist ein wunderbarer Weg, um den Alltag ein wenig zu entfliehen! Aber es ist auch eine Menge Arbeit, vor allem als Leiter der Gruppe.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 461
+            },
+            {
+                id: 461,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Kurz vor ab: {Kennen Sie|Kennst du} D&D oder ein anderes Pen-and-Paper-Rollenspiel?",
+                bg: "_assets/vn_assets/images/couch_explaining_6.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                choices: [
+                    { text: "Ja und ich habe es selbst auch schon gespielt!", nextNode: 4000},
+                    { text: "Ja, aber ich habe es noch nie gespielt!", nextNode: 4200},
+                    { text: "Nein, ich habe noch nie davon gehört.", nextNode: 4400},
+                ]
+            },
+            {
+                id: 4000,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Wunderbar! Dann brauche ich es nicht großartig zu erklären!",
+                bg: "_assets/vn_assets/images/couch_explaining_6.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 462
+            },
+            {
+                id: 4200,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ah okay, das ist schade! Es macht wirklich viel Spaß! Aber dann fasse ich mich kurz.",
+                bg: "_assets/vn_assets/images/couch_friendly_5.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 4201
+            },
+            {
+                id: 4201,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ich bin der DM (DungeonMaster) unserer Gruppe. Das heißt, ich leite das Spiel. Man könnte sagen, ich bin der allwissende Erzähler einer Geschichte.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 4203
+            },
+            {
+                id: 4203,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Alle aus meiner Gruppe (mich eingeschlossen), hatten zuvor nicht viel bis gar keine Erfahrung mit D&D, wobei ich noch die meiste Erfahrung mitgebracht habe.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 4204
+            },
+            {
+                id: 4204,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Dementsprechend habe ich umso mehr Arbeit, da ich mich auch noch um meine Mitspieler kümmere und ihnen bei der Charaktererstellung helfe, sowie auch Tips gebe, wenn sie mal nicht wissen, was zu tun ist.",
+                bg: "_assets/vn_assets/images/couch_explaining_4.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 4205
+            },
+            {
+                id: 4205,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Darüber hinaus bereite ich das Spielbrett im Vorfeld vor, stelle mich auf Story-Events ein und überlege generell, was die Spieler heute wohl tun könnten.",
+                bg: "_assets/vn_assets/images/couch_explaining_4.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 4206
+            },
+            {
+                id: 4206,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Die Spieler haben natürlich vollständige Entscheidungsfreiheit, weshalb Improvisation für gutes Story-Telling wichtig ist. Aber ohne Vorbereitung läuft gar nichts.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 462
+            },
+            {
+                id: 4400,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Okay, das ist Schade. Es ist ein großartiges Spiel, um mal für kurze Zeit ein völlig anderer Mensch zu sein - oder sogar eine ganz andere Rasse!",
+                bg: "_assets/vn_assets/images/couch_friendly_5.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 4401
+            },
+            {
+                id: 4401,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "In Pen-und-Paper-Rollenspiel, spielt man größtenteils mit der Fantasie. Die verschiedenen Spiele - wie z.B. D&D - geben dabei eine Rahmen an Regeln zum orientieren an.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 4402
+            },
+            {
+                id: 4402,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Es steht einem allerdings frei, diese Regeln innerhalb der Gruppe beliebig anzupassen. Sie dienen wie gesagt nur zur groben Orientierung.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 4403
+            },
+            {
+                id: 4403,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Danach startet das Spiel für die Spieler mit der Erstellung eines Charakters. In D&D ist dies noch relativ einfach gehalten, zumindest in Vergleich zu anderen Rollenspieln.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 4404
+            },
+            {
+                id: 4404,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Man denkt sich im Kopf einen Charakter aus, verleiht diesem ein Aussehen, eine Hintergrundgeschichte, und so weiter.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 4405
+            },
+            {
+                id: 4405,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Und diesen Charakter spielt man dann im Spiel. Man kann beispielsweise ein mächtiger Krieger sein, ein fieser Schurke oder ein weiser Magier.",
+                bg: "_assets/vn_assets/images/couch_explaining_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 4406
+            },
+            {
+                id: 4406,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Der Leiter des Spiels, bei D&D der sogenannte DungeonMaster - kurz DM -, ist für die gesamte Spielwelt und Geschichte verantwortlich. Er ist so etwas wie der allwissende Erzähler.",
+                bg: "_assets/vn_assets/images/couch_explaining_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 4407
+            },
+            {
+                id: 4407,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Er leitet die Spieler durch die Welt und versucht möglichst immersiv die jeweilige Situation zu beschreiben, in der sich die Spieler befinden.",
+                bg: "#3e2723",
+                nextNode: 4408
+            },
+            {
+                id: 4408,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Darüber hinaus steuert er alle Charaktere, die nicht den Spielern zugewiesen sind. Also Monster, die gegen die Spieler kämpfen, Verbündete, die den Spielern zur Seite stehen, oder neutrale Charaktere wie Händler oder Auftraggeber.",
+                bg: "_assets/vn_assets/images/couch_explaining_5.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 4409
+            },
+            {
+                id: 4409,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ganz wichtig dabei: Der DM spielt nicht gegen die Spieler sondern für sie. Im Idealfall verschafft er ihnen das beste Erlebnis möglich.",
+                bg: "_assets/vn_assets/images/couch_friendly_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 4410
+            },
+            {
+                id: 4410,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Der DM ist der Erschaffer der Welt und seine Spieler sind die Hauptcharaktere. Und welcher Story-Teller möchte schon, dass seine Hauptcharaktere nicht im Licht der Geschichte glänzen?",
+                bg: "_assets/vn_assets/images/couch_friendly_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 4411
+            },
+            {
+                id: 4411,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Klingt jedenfalls danach, als hätte der DM sehr viel Arbeit, richtig? Das ist korrekt. Und diese Rolle spiele ich in unserer Gruppe.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 4412
+            },
+            {
+                id: 4412,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Wobei man sagen muss, all die Arbeit zahlt sich zehnfach aus, wenn man erfolgreich dafür sorgt, dass alle Spaß am Spiel haben!",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 462
+            },
+            {
+                id: 462,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Meine Gruppe versucht sich im Ideal-Fall jede Woche zu treffen, aber es läuft mehr auf einmal im Monat hinaus, da wir uns geeinigt haben nur zu spielen, wenn alle können.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 463
+            },
+            {
+                id: 463,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Wir kommen zwar nur langsam voran in der Geschichte, aber haben jedes Mal Spaß, wenn wir eine Session spielen!",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 464
+            },
+            {
+                id: 464,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Auch hier liebe ich es, meiner Kreativität freien Lauf lassen zu können und dieses Erlebnis zusammen mit Freunden zu teilen!",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 465
+            },
+            {
+                id: 465,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Und wer weiß, vielleicht spielen wir ja auch mal zusammen D&D.",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 466
+            },
+            {
+                id: 466,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest du} noch zu einem anderen Thema mehr hören?",
+                bg: "_assets/vn_assets/images/couch_question_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 467
+            },
+            {
+                id: 467,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest du} noch zu einem anderen Thema mehr hören?",
+                bg: "_assets/vn_assets/images/couch_question_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                instantText: true,
+                choices: [
+                    { text: "Erzähl mir etwas mehr über deine YouTube-Videos.", nextNode: 420},
+                    { text: "Du machst Musik? Da möchte ich gerne mehr drüber hören.", nextNode: 440},
+                    { text: "Was machst du so mit deinen Freunden?", nextNode: 480},
+                    { text: "Das reicht mir bereits als Info.", nextNode: 411},
+                ]
+            },
+
+            //FREUNDE & UNTERNEHMUNGEN
+            {
+                id: 480,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Sozialer Kontakt ist mir wichtig. Leider hat man, je älter man wird, gefühlt immer weniger Zeit. Daher versuche ich meine Hobbys mit meinen Freunden so gut es geht zu kombinieren.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 481
+            },
+            {
+                id: 481,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Wir spielen häufig Spiele am PC und häufig kombiniere ich dies mit dem Streamen oder Videos für YouTube.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 482
+            },
+            {
+                id: 482,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Dabei ist das Spielen ganz zwanglos. Ich mache zwar ein Intro und Outro für den Stream und die Videos und natürlich gibt es Zuschauer-Interaktionen, aber ansonsten spielen wir wie immer.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 483
+            },
+            {
+                id: 483,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ein großer Vorteil hierbei ist natürlich das spontane Zusammentreffen ohne großartig etwas planen zu müssen. Wenn wir Zeit haben, spielen wir, wenn nicht, dann eben nicht.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 484
+            },
+            {
+                id: 484,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Mit meinem engsten Freundeskreis fahre ich außerdem jährlich in den Urlaub für ein paar Tage, da wir alle gerne Reisen und neue Länder erkunden.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 485
+            },
+            {
+                id: 485,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Hierbei suchen wir uns häufig Gegenden aus, wo wir ungestört sind und gleichzeitig viel Natur und Atmosphäre des entsprechenden Landes aufnehmen können.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 486
+            },
+            {
+                id: 486,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Unsere bisherigen Reiseziele waren England, Italien, Niederlande und die Schweiz. Aber wir planen noch mehr Länder zu besuchen in den nächsten Jahren.",
+                bg: "_assets/vn_assets/images/couch_friendly_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 487
+            },
+            {
+                id: 487,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ansonsten treffe ich mich mit einigen meiner Freunde auch häufig im Zuge verschiedener Aktivitäten. Seien es Freizeitparks, Events, Konzerte oder einfach zum Bummeln, Essen oder Spazierengehen.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 488
+            },
+            {
+                id: 488,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Das klingt natürlich alles so, als hätte ich mehr Zeit, als ich eigentlich habe. Aber man muss sich vor Augenführen, dass diese Aktivitäten leider sehr rar sind.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 489
+            },
+            {
+                id: 489,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Aber ich bin zufrieden darüber, in welche Richtung mein Leben momentan verläuft.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 490
+            },
+
+            {
+                id: 490,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest du} noch zu einem anderen Thema mehr hören?",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 491
+            },
+
+            {
+                id: 491,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Möchten Sie|Möchtest du} noch zu einem anderen Thema mehr hören?",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                instantText: true,
+                choices: [
+                    { text: "Erzähl mir etwas mehr über deine YouTube-Videos.", nextNode: 420},
+                    { text: "Du machst Musik? Da möchte ich gerne mehr drüber hören.", nextNode: 440},
+                    { text: "Dungeons & Dragons? Erzähl mir mehr!", nextNode: 460},
+                    { text: "Was machst du so mit deinen Freunden?", nextNode: 480},
+                    { text: "Das reicht mir bereits als Info.", nextNode: 411},
+                ]
+            },
+
+            //FRAGE 4: Motivation
+            {
+                id: 500,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Sie möchten|Du möchtest} wissen, was meine Motivation für's Programmieren und die Informatik im allgemeinen ist?",
+                bg: "_assets/vn_assets/images/couch_thinking_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 501
+            },
+            {
+                id: 501,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Es gibt zwei Hauptgründe warum ich gerne Programmiere: Erstens liebe ich es Probleme auf logische Weise zu lösen.",
+                bg: "_assets/vn_assets/images/couch_serious_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 502
+            },
+            {
+                id: 502,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Computer sind nichts anderes als logisch und auch wenn manchmal Probleme auftreten, die einem merkwürdig oder unlogisch erscheinen, so haben sie doch immer nachvollziehbare Gründe.",
+                bg: "_assets/vn_assets/images/couch_serious_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 503
+            },
+            {
+                id: 503,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ob es nun Troubleshooting und Debugging eines Programms sind, bei denen man alle Komponenten aufschlüsseln und den genauen Ablauf verstehen muss, oder eine gegebene Aufgabe in Form eines Programms lösen muss.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 504
+            },
+            {
+                id: 504,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Die Arbeit des Informatikers basiert auf logischen Grundbausteinen und da ich ein logisch denkender Mensch bin und Spaß an solchen Aufgaben und Problemen habe, macht mir auch die Arbeit als Informatiker Spaß.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 505
+            },
+            {
+                id: 505,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Dann kommt der Kreative Aspekt hinzu. Und ich meine nicht nur die Arbeit als CSS Designer oder ähnliches.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 506
+            },
+            {
+                id: 506,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Zwar gilt es die meisten Problematiken logisch zu lösen, aber die Art und Weise, wie man dies tut erfordert ebenfalls Kreativität.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 507
+            },
+            {
+                id: 507,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Die Verknüpfung von logischen Mechanismen ist wie das erfinden eines neuen Kochrezepts. Mit Variablen als Grundzutaten, Funktionen als Mengenangaben und die eigene Syntax als Gewürz.",
+                bg: "_assets/vn_assets/images/couch_explaining_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 508
+            },
+            {
+                id: 508,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Man muss verstehen, was man tut und wie die einzelnen Zutaten sich Verhalten, aber ohne Kreativität können keine neuen Rezepte entstehen.",
+                bg: "_assets/vn_assets/images/couch_explaining_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 509
+            },
+            {
+                id: 509,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Logik und Kreativität sind meine stärksten Charaktereigenschaften und diese passen perfekt in die Informatik. Ich ärgere mich ein wenig, dass ich das erst so spät verstanden habe.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 510
+            },
+            {
+                id: 510,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Und genau aus diesem Grund bin ich nun umso motivierter alles erforderliche zu lernen und ich habe sogar noch Spaß dabei!",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 511
+            },
+            {
+                id: 511,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ich gehe gerne in den Unterricht der Umschulung, auch wenn mir dort die Praxis ein wenig fehlt. Diese hole ich dann nachmittags zuhause nach.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 512
+            },
+            {
+                id: 511,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ich kann es ehrlich gesagt, kaum erwarten diesen Beruf in einem professionellen Umfeld auszuüben. Das klingt vielleicht etwas überzogen, aber das ist es wie ich empfinde.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 512
+            },
+            {
+                id: 512,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "So viel zu meiner Motivation. {Möchten Sie|Möchtest du} mich noch etwas anderes fragen?",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 99999
+            },
+
+            //FRAGE 5: Kontakt
+            {
+                id: 600,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Sie möchten|Du möchtest} wissen, wie {Sie|du} mich kontaktieren {können|kannst}?",
+                bg: "_assets/vn_assets/images/couch_question_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 601
+            },
+            {
+                id: 601,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Sie können|Du kannst} mir gerne eine Mail schreiben an: 'simonmasur@yahoo.de'! Oder {rufen Sie|ruf} mich einfach an. Meine Telefon-Nummer lautet: 017642440673.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 602
+            },
+            {
+                id: 602,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Sie können|Du kannst} mir auch ganz altmodisch eine Brieftaube schicken! Diese müsste dann nur irgendwie den Weg zum Unterer Grenzweg 15 in Witten finden.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 603
+            },
+            {
+                id: 603,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Gerne stehe ich {Ihnen|dir} ebenfalls für ein persönliches Gespräch zur Verfügung. Es würde mich freuen, {Sie|dich} im realen Leben kennenzulernen, {playerName}!",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 604
+            },
+            {
+                id: 604,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Aber davor müssten wir wohl so oder so über einen der anderen Wege Kontakt suchen.",
+                bg: "_assets/vn_assets/images/couch_friendly_6.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 605
+            },
+            {
+                id: 605,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Meine Kontaktdaten {finden Sie|findest du} natürlich zudem hier im Portfolio.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 290
+            },
+
+            //FRAGE 6: Ziele & Zukunft
+            {
+                id: 700,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Sie fragen|Du fragst} was meine Zukunftsaussichten und Ziele sind?",
+                bg: "_assets/vn_assets/images/couch_thinking_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 701
+            },
+            {
+                id: 701,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ich finde das mittlerweile etwas schwierig zu beantworten. Nicht, weil ich nicht wüsste, was ich gerne tun würde, sondern weil ich ein realistisch denkender Mensch bin.",
+                bg: "_assets/vn_assets/images/couch_thinking_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 702
+            },
+            {
+                id: 702,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Mein Wunschziel wäre es eine Stelle zu finden, bei der ich den ganzen Tag meine Kreativität ausschöpfen kann, um Programme zu schreiben und zu optimieren.",
+                bg: "_assets/vn_assets/images/couch_thinking_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 703
+            },
+            {
+                id: 703,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Aber so sieht kein Berufsalltag aus, das ist mir völlig bewusst. Ich denke allerdings, wenn ich in einem Team bin, mit dem man sich gut versteht, sind auch die Tage an denen man monotone Arbeit machen muss, mehr als erträglich.",
+                bg: "_assets/vn_assets/images/couch_serious_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 704
+            },
+            {
+                id: 704,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Daher ist meine realistische Antwort: ich möchte einen Betrieb finden, in dem ich mich wohl fühle und in dem ich geschätzt werde.",
+                bg: "_assets/vn_assets/images/couch_serious_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 705
+            },
+            {
+                id: 705,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Denn dann kann ich jeder Arbeit mit Motivation und voller Energie nachgehen, ob es nun komplizierte, einfache, monotone oder abwechslungsreiche Aufgaben sind.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 706
+            },
+            {
+                id: 706,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Die IT-Branche ist natürlich auch dafür bekannt, dass man dort nie ausgelernt hat, aber ich finde dies ist ein Pluspunkt. Ich lerne gerne neue Dinge.",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 707
+            },
+            {
+                id: 707,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Daher hoffe ich auch, das mein zukünftiger Betrieb, diese Leidenschaft fördert. Ein geschulter Mitarbeiter ist schließlich eine Win-Win-Situation.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 708
+            },
+            {
+                id: 708,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ich habe mich zudem bereits über einige Weiterbildungen informiert.",
+                bg: "_assets/vn_assets/images/couch_explaining_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 709
+            },
+            {
+                id: 709,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Der Bereich der Informatik ist allerdings so vielfältig und jede Spezialisierung weist, wie ich finde, etwas interessantes auf, dass ich mich noch nicht festlegen wollte.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 710
+            },
+            {
+                id: 710,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Grundsätzlich hätte ich Interesse an jeder Art der Weiterbildung, aber was genau zu mir passt oder sogar zu dem Betrieb in dem ich zukünftig arbeite, sehe ich dann, nachdem ich erst einmal meine aktuelle Umschulung beendet habe.",
+                bg: "_assets/vn_assets/images/couch_explaining_2.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 711
+            },
+            {
+                id: 710,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Das ist erst einmal alles, was ich zu meinen beruflichen Wünschen und Zielen sagen kann. {Haben Sie|Hast du} noch weitere Fragen an mich?",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 99999
+            },
+
+
+            //OUTRO
+            {
+                id: 10000000,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Das war alles was {Sie wissen möchten|du wissen möchtest}? In dem Fall wären wir am Ende dieses Spiels!",
+                bg: "_assets/vn_assets/images/couch_friendly_1.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 10000001
+            },
+            {
+                id: 10000001,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Es hat mich sehr gefreut mit {Ihnen|dir} zu sprechen{! |, \{playerName\}!}",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 10000002
+            },
+            {
+                id: 10000002,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "{Lassen Sie mich Sie|Lass mich dich} noch nach draußen begleiten.",
+                bg: "_assets/vn_assets/images/couch_friendly_3.jpg",
+                bgPosition: "center 20%",
+                bgSize: "100% 150%",
+                nextNode: 10000003
+            },
+            {
+                id: 10000003,
+                bg: "#000000",
+                autoAdvance: 1500,
+                nextNode: 10000004
+            },
+            {
+                id: 10000004,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Hier wären wir wieder. Ich hoffe, {Ihnen|dir} hat das Spiel gefallen!",
+                bg: "_assets/vn_assets/images/entrance.jpg",
+                characters: [
+                    { position: "center", img: "_assets/vn_assets/images/me_welcome.png" }
+                ],
+                nextNode: 10000005
+            },
+            {
+                id: 10000005,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Falls {Sie|du} Interesse haben {sollten|solltest} mich persönlich kennenzulernen, meine Kontaktdaten {finden Sie|findest du} hier im Portfolio!",
+                bg: "_assets/vn_assets/images/entrance.jpg",
+                characters: [
+                    { position: "center", img: "_assets/vn_assets/images/me_titlescreen.png" }
+                ],
+                nextNode: 10000006
+            },
+            {
+                id: 10000006,
+                speaker: "Simon",
+                fontStyle: "normal",
+                text: "Ich wünsche {Ihnen|dir} einen guten Heimweg und einen schönen Tag! Vielleicht bis demnächst im realen Leben!",
+                bg: "_assets/vn_assets/images/entrance.jpg",
+                characters: [
+                    { position: "center", img: "_assets/vn_assets/images/me_hello.png" }
+                ],
+                nextNode: "menu"
+            }
+        ];
+
+        // --- DIALOG-STEUERUNGSFUNKTIONEN (AUSSEN) ---
+        function advanceDialogue() {
+            clearTimeout(autoNodeTimeout);
+            const node = storyNodes.find(n => n.id === currentNodeId);
+            if (isTyping) {
+                clearInterval(typewriterInterval);
+                storyTextElement.textContent = currentFullText;
+                isTyping = false;
+
+                if (node && node.autoAdvance) {
+                    scheduleAutoAdvance(node.autoAdvance);
+                }
+            } else if (node && node.nextNode !== undefined) {
+                showNode(node.nextNode);
+            }
+        }
+
+        function regressDialogue() {
+            if (nodeHistory.length > 0) {
+                const prevNodeId = nodeHistory.pop();
+                showNode(prevNodeId, true);
+            }
+        }
+
+        // TASTATUR-LISTENER NUR EINMALIG REGISTRIEREN
+        document.addEventListener('keydown', (e) => {
+            if (e.repeat) return;
+
+            if (!gameContainer.classList.contains('active-screen')) return;
+
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            if (e.key === 'ArrowRight') {
+                advanceDialogue();
+            } else if (e.key === 'ArrowLeft') {
+                regressDialogue();
+            }
+        });
+
+        // --- SHOW NODE FUNKTION ---
+        function showNode(nodeIndex, isBackNavigation = false) {
+            clearTimeout(autoNodeTimeout);
+            if (nodeIndex === 'menu') {
+                nodeHistory = [];
+                switchScreen(gameContainer, mainMenu);
+                return;
+            }
+
+            const node = storyNodes.find(n => n.id === nodeIndex);
+            if (!node) return;
+
+            if (!isBackNavigation && currentNodeId && currentNodeId !== nodeIndex) {
+                nodeHistory.push(currentNodeId);
+            }
+
+            currentNodeId = nodeIndex;
+
+            updateBgm(node.bgm);
+
+            for (let i = 0; i < 3; i++) {
+                const spriteEl = document.getElementById(`sprite-${i}`);
+                if (spriteEl) {
+                    spriteEl.classList.remove('active', 'pos-left', 'pos-center', 'pos-right', 'anim-bounce', 'anim-shake', 'dimmed');
+                }
+            }
+
+            if (node.characters && Array.isArray(node.characters)) {
+                node.characters.forEach((char, index) => {
+                    const spriteEl = document.getElementById(`sprite-${index}`);
+                    if (spriteEl) {
+                        if (spriteEl.dataset.currentImg !== char.img) {
+                            spriteEl.src = char.img;
+                            spriteEl.dataset.currentImg = char.img;
+                        }
+
+                        spriteEl.classList.add(`pos-${char.position}`);
+                        spriteEl.classList.add('active');
+
+                        if (node.speaker && char.name && char.name !== node.speaker) {
+                            spriteEl.classList.add('dimmed');
+                        }
+
+                        if (char.action) {
+                            void spriteEl.offsetWidth;
+                            spriteEl.classList.add(`anim-${char.action}`);
+                        }
+                    }
+                });
+            }
+
+            // Trinken-Button
+            isDrinkUnlocked = (node.id >= 14 && node.id < 5000000);
+            drinkBtn.style.display = isDrinkUnlocked ? "inline-block" : "none";
+
+            // Quest-Button
+            if (node.id === 19) {
+                isQuestUnlocked = true;
+            }
+
+            if (isQuestUnlocked && node.id !== 99999) {
+                questBtn.style.display = "inline-block";
+            } else {
+                questBtn.style.display = "none";
+            }
+
+            while (choicesBoxElement.firstChild) {
+                choicesBoxElement.removeChild(choicesBoxElement.firstChild);
+            }
+
+            // Text verarbeiten
+            let currentSpeaker = node.speaker || "";
+            let currentText = node.text || "";
+
+            currentSpeaker = currentSpeaker.replace("{playerName}", playerName);
+            currentText = currentText.replace("{playerName}", playerName);
+
+            currentText = currentText.replace(/\{([^}]+)\|([^}]+)\}/g, (match, formalText, informalText) => {
+                return isFormal ? formalText : informalText;
+            });
+
+            speakerNameElement.innerText = currentSpeaker;
+
+            if (node.instantText) {
+                clearInterval(typewriterInterval);
+                isTyping = false;
+                currentFullText = currentText;
+                storyTextElement.textContent = currentText;
+
+                if (node.autoAdvance) {
+                    scheduleAutoAdvance(node.autoAdvance);
+                }
+            } else {
+                typeWriter(currentText, () => {
+                    if (node.autoAdvance) {
+                        scheduleAutoAdvance(node.autoAdvance);
+                    }
+                });
+            }
+
+            if (node.bg) {
+                if (node.bg.startsWith('#') || node.bg.startsWith('rgb')) {
+                    gameContainer.style.backgroundImage = 'none';
+                    gameContainer.style.backgroundColor = node.bg;
+                } else {
+                    gameContainer.style.backgroundImage = `url("${node.bg}")`;
+                    gameContainer.style.backgroundSize = node.bgSize || "cover";
+                    gameContainer.style.backgroundPosition = node.bgPosition || "center";
+                    gameContainer.style.backgroundRepeat = "no-repeat";
+                }
+            }
+
+            if (node.fontStyle) {
+                gameContainer.style.fontStyle = node.fontStyle;
+            }
+
+            if (node.inputType) {
+                let inputField = document.createElement("input");
+                inputField.type = node.inputType;
+                inputField.id = "gameInput";
+
+                let rawPlaceholder = node.inputPlaceholder || "Gib deine Antwort ein...";
+                inputField.placeholder = rawPlaceholder.replace(/\{([^}]+)\|([^}]+)\}/g, (match, formalText, informalText) => {
+                    return isFormal ? formalText : informalText;
+                });
+
+                choicesBoxElement.appendChild(inputField);
+            }
+
+            dialogueBoxElement.onclick = advanceDialogue;
+
+            if (node.nextNode !== undefined) {
+                dialogueBoxElement.style.cursor = "pointer";
+            } else {
+                dialogueBoxElement.style.cursor = "default";
+            }
+
+            // Choices verarbeiten
+            if (node.choices) {
+                node.choices.forEach(choice => {
+                    const button = document.createElement('button');
+
+                    let choiceText = choice.text.replace(/\{([^}]+)\|([^}]+)\}/g, (match, formalText, informalText) => {
+                        return isFormal ? formalText : informalText;
+                    });
+                    button.innerText = choiceText;
+                    button.classList.add('choice-btn');
+
+                    button.addEventListener('click', () => {
+                        if (choice.setFormal !== undefined) {
+                            isFormal = choice.setFormal;
+                        }
+
+                        let targetNode = choice.nextNode;
+
+                        if (node.inputType && choice.requireInput) {
+                            let inputElement = document.getElementById("gameInput");
+                            let inputValue = inputElement ? inputElement.value.trim() : "";
+
+                            if (inputValue === "") {
+                                alert("Bitte gib etwas in das Feld ein!");
+                                inputElement.focus();
+                                return;
+                            }
+
+                            if (node.keywords) {
+                                let userInput = inputValue.toLowerCase();
+                                let matchedNode = null;
+
+                                for (let item of node.keywords) {
+                                    let match = item.words.some(word => userInput.includes(word.toLowerCase()));
+                                    if (match) {
+                                        matchedNode = item.nextNode;
+                                        break;
+                                    }
+                                }
+
+                                if (matchedNode) {
+                                    targetNode = matchedNode;
+                                } else if (node.fallbackNode !== undefined) {
+                                    targetNode = node.fallbackNode;
+                                }
+                            }
+                            else {
+                                playerName = inputValue;
+                            }
+
+                        }
+                        else if (choice.resetName !== undefined) {
+                            playerName = choice.resetName.replace(/\{([^}]+)\|([^}]+)\}/g, (match, formalText, informalText) => {
+                                return isFormal ? formalText : informalText;
+                            });
+                        }
+                        showNode(targetNode);
+                    });
+
+                    choicesBoxElement.appendChild(button);
+                });
+            }
+        }
+
+        checkSaveState();
+    </script>
+</section>
+</body>
+</html>

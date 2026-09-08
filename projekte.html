@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simon Masurkewitsch — Portfolio</title>
+    <meta name="description" content="projekte">
+
+    <!-- Google Fonts: Serif für Überschriften, Sans für Text -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ================= NAVIGATION ================= -->
+<header class="site-header">
+    <a href="#top" class="logo">Simon Masurkewitsch</a>
+    <nav class="main-nav">
+        <a href="index.html">Start</a>
+        <a href="game.html">Game</a>
+        <a href="projekte.html">Projekte</a>
+        <a href="uebermich.html">Über mich</a>
+        <a href="kontakt.html">Kontakt</a>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="Menü öffnen" aria-expanded="false">
+        <span></span><span></span><span></span>
+    </button>
+</header>
+
+
+<!-- ================= PROJEKTE ================= -->
+<section class="projects" id="projekte">
+    <div class="section-head">
+        <h2>Ausgewählte Projekte</h2>
+        <p>Hier findet ihr einige meiner bisherigen Projekte.</p>
+    </div>
+
+    <ul class="project-list">
+
+        <li class="project-row">
+            <a href="_assets/projects/project1.html" class="project-link" data-preview="preview-1">
+                <span class="project-name">RNJesus</span>
+                <span class="project-meta">
+            <span class="project-tag">Minecraft-Extension</span>
+            <span class="project-year">2022</span>
+          </span>
+            </a>
+        </li>
+
+        <li class="project-row">
+            <a href="_assets/projects/project2.html" class="project-link" data-preview="preview-2">
+                <span class="project-name">Twitch-Chatbot</span>
+                <span class="project-meta">
+            <span class="project-tag">Chatbot</span>
+            <span class="project-year">2023</span>
+          </span>
+            </a>
+        </li>
+
+        <li class="project-row">
+            <a href="_assets/projects/project3.html" class="project-link" data-preview="preview-3">
+                <span class="project-name">Diese Portfolio Website</span>
+                <span class="project-meta">
+            <span class="project-tag">Website</span>
+            <span class="project-year">2026</span>
+          </span>
+            </a>
+        </li>
+
+    </ul>
+</section>
+
+
+<script src="script.js"></script>
+</body>
+</html>

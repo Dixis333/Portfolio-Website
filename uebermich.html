@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simon Masurkewitsch — Portfolio</title>
+    <meta name="description" content="lebenslauf">
+
+    <!-- Google Fonts: Serif für Überschriften, Sans für Text -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ================= NAVIGATION ================= -->
+<header class="site-header">
+    <a href="#top" class="logo">Simon Masurkewitsch</a>
+    <nav class="main-nav">
+        <a href="index.html">Start</a>
+        <a href="game.html">Game</a>
+        <a href="projekte.html">Projekte</a>
+        <a href="uebermich.html">Über mich</a>
+        <a href="kontakt.html">Kontakt</a>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="Menü öffnen" aria-expanded="false">
+        <span></span><span></span><span></span>
+    </button>
+</header>
+
+
+<!-- ================= ÜBER MICH ================= -->
+<section class="about" id="ueber-mich">
+        <div class="about-text">
+            <h2>Über mich</h2>
+            <p>
+                Hier findet ihr alle wichtigen und relevanten Daten über mich. Falls ihr noch mehr wissen möchtet, zögert nicht, mich zu kontaktieren!<br>
+                Die Möglichkeiten hierfür findet ihr unter dem 'Kontakt'-Tab!
+            </p>
+        </div>
+        <div class="lebenslauf-actions">
+            <a href="_assets/lebenslauf/pdaten.html" target="lebenslauf-frame" class="abt btn-ghost">Persönliche Daten</a>
+            <a href="_assets/lebenslauf/bildungsweg.html" target="lebenslauf-frame" class="abt btn-ghost">Bildungsweg</a>
+            <a href="_assets/lebenslauf/praxiserfahrung.html" target="lebenslauf-frame" class="abt btn-ghost">Berufslaufbahn / Praxiserfahrung</a>
+            <a href="_assets/lebenslauf/KundF.html" target="lebenslauf-frame" class="abt btn-ghost">Kenntnisse & Fähigkeiten</a>
+        </div>
+
+    <div class="lebenslauf-container">
+        <pre id="lebenslauf"></pre>
+        <iframe id="lebenslauf-frame" name="lebenslauf-frame" width="773" height="800"></iframe>
+    </div>
+</section>
+
+<script src="script.js"></script>
+</body>
+</html>
