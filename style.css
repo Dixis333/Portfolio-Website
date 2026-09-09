@@ -56,7 +56,7 @@ img { max-width: 100%; display: block; }
 .site-header {
   position: sticky;
   top: 0;
-  z-index: 50;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -999,6 +999,7 @@ img { max-width: 100%; display: block; }
     display: flex;
     position: absolute;
     top: 100%;
+    z-index: 1001;
     left: 0;
     right: 0;
     flex-direction: column;
