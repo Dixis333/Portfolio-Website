@@ -990,7 +990,7 @@ img { max-width: 100%; display: block; }
 }
 
 /* ===========================================================
-   RESPONSIVE / MOBILE ANPASSUNGEN (EXTRA KOMPAKT)
+   RESPONSIVE / MOBILE ANPASSUNGEN
    =========================================================== */
 @media (max-width: 780px) {
 
@@ -1117,5 +1117,75 @@ img { max-width: 100%; display: block; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; scroll-behavior: auto !important; }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+
+  .game {
+    max-height: calc(100vh - 40px);
+  }
+
+  #game-controls, 
+  #drink-button {
+    top: 2px;
+  }
+  #game-controls { right: 2px; }
+  #drink-button { left: 2px; }
+
+  .control-btn, 
+  .drink-btn {
+    padding: 1px 4px;
+    font-size: clamp(8px, 2vh, 11px);
+  }
+
+  #game-title.state-title {
+    font-size: clamp(0.9rem, 4.5vh, 1.2rem);
+    top: 18%;
+  }
+
+  #game-title.state-menu {
+    font-size: clamp(0.65rem, 3vh, 0.85rem);
+    top: 2px;
+    left: calc(100% - 2px);
+  }
+
+  .menu-btn {
+    width: 50%;
+    max-width: 130px;
+    padding: 2px 6px;
+    font-size: clamp(9px, 2.8vh, 12px);
+    margin-bottom: 3px;
+  }
+
+  #choicesP {
+    top: 32%;
+    width: 80%;
+  }
+
+  .choice-btn {
+    padding: 2px 5px;
+    font-size: clamp(9px, 2.5vh, 11px);
+    margin-bottom: 2px;
+  }
+
+  #dialogue-box {
+    bottom: 2px;
+    left: 2px;
+    right: 2px;
+    padding: 3px 6px;
+    min-height: 28px;
+    max-height: 32%;
+  }
+
+  #speaker-name {
+    font-size: clamp(8px, 2.3vh, 11px);
+    margin-bottom: 0px;
+  }
+
+  #story-text {
+    font-size: clamp(8px, 2vh, 10px);
+    line-height: 1.1;
+    margin-bottom: 0px;
+  }
 }
 
