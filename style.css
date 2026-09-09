@@ -802,6 +802,29 @@ img { max-width: 100%; display: block; }
   display: none;
 }
 
+.rnjesusVideo {
+  width: 100%;
+  max-width: 960px;
+  margin: 2rem auto;
+  padding: 0 1rem; 
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.rnjesusVideo iframe {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.rnjesus-vidsub {
+  margin-top: 1rem;
+  font-size: clamp(0.85rem, 2vw, 1.05rem);
+}
+
 /* ===========================================================
    PROJECT 2 - Twitchbot
    =========================================================== */
