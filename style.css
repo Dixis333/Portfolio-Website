@@ -1169,13 +1169,13 @@ img { max-width: 100%; display: block; }
   }
 
   #dialogue-box {
-    bottom: 2px;
-    left: 2px;
-    right: 2px;
-    padding: 3px 6px;
-    min-height: 28px;
-    max-height: 56%;
-  }
+  bottom: 4px;
+  left: 4px;
+  right: 4px;
+  padding: 8px 12px; 
+  min-height: 50px;  
+  max-height: 64%;      
+}
 
   #speaker-name {
     font-size: clamp(8px, 2.3vh, 11px);
