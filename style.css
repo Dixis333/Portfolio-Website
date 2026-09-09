@@ -982,7 +982,7 @@ img { max-width: 100%; display: block; }
 }
 
 /* ===========================================================
-   RESPONSIVE
+   RESPONSIVE / MOBILE ANPASSUNGEN
    =========================================================== */
 @media (max-width: 780px) {
   .main-nav { display: none; }
@@ -1001,9 +1001,72 @@ img { max-width: 100%; display: block; }
     border-bottom: 1px solid var(--color-border);
   }
 
-  .about-grid {
-    grid-template-columns: 1fr;
-    gap: 2.5rem;
+  .game {
+    max-height: calc(100vh - 80px);
+    margin-top: 0.5rem;
+  }
+
+  #game-title.state-title {
+    font-size: clamp(1.8rem, 6vw, 2.5rem);
+    top: 25%;
+  }
+
+  #game-title.state-menu {
+    font-size: clamp(1.4rem, 5vw, 2rem);
+    top: 15px;
+    left: calc(100% - 15px);
+  }
+
+  .menu-btn {
+    width: 85%;
+    max-width: 250px;
+    padding: 10px 15px;
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+  }
+
+  #dialogue-box {
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    padding: 12px;
+    min-height: 100px;
+  }
+
+  #story-text {
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+  }
+
+  #speaker-name {
+    font-size: 1rem;
+    margin-bottom: 5px;
+  }
+
+  .control-btn, .drink-btn {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+  }
+
+  .lebenslauf-container {
+    height: 60vh;
+    min-height: 380px;
+  }
+
+  .lebenslauf-actions,
+  .wscode-actions {
+    justify-content: center;
+  }
+
+  .abt {
+    font-size: 0.85rem;
+    padding: 0.6rem 0.8rem;
+    text-align: center;
+  }
+
+  .kontakt-daten {
+    flex-direction: column;
+    gap: 0.5rem;
   }
 
   .project-link {
@@ -1018,5 +1081,4 @@ img { max-width: 100%; display: block; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; scroll-behavior: auto !important; }
 }
-
 
