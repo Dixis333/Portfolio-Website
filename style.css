@@ -817,18 +817,34 @@ img { max-width: 100%; display: block; }
   max-width: 58ch;
 }
 
+.lebenslauf-actions {
+  max-width: 100%;
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem; 
+}
+
 .lebenslauf-container {
-  width: 800px;
-  height: 773px;
+  width: 100%; 
+  height: 800px;  
   margin: 0 auto;
-  overflow: auto;
+  overflow: hidden;      
   background: #12151c;
   color: #f2f2f2;
 }
 
-.lebenslauf-actions {
-  max-width: var(--max-width);
+.lebenslauf-container iframe {
   width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+  overflow: hidden;
+}
+
+#lebenslauf {
+  display: none;
 }
 
 .lebenslauf-hero{
