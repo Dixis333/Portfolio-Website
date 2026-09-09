@@ -990,7 +990,7 @@ img { max-width: 100%; display: block; }
 }
 
 /* ===========================================================
-   RESPONSIVE / MOBILE ANPASSUNGEN
+   RESPONSIVE / MOBILE ANPASSUNGEN (EXTRA KOMPAKT)
    =========================================================== */
 @media (max-width: 780px) {
 
@@ -1017,67 +1017,72 @@ img { max-width: 100%; display: block; }
   }
 
   #game-title.state-title {
-    font-size: 1.6rem;
-    top: 25%;
+    font-size: 1.2rem; 
+    top: 22%;
   }
 
   #game-title.state-menu {
-    font-size: 1.1rem;
-    top: 10px;
-    left: calc(100% - 10px);
+    font-size: 0.85rem;  
+    top: 6px;
+    left: calc(100% - 6px);
   }
 
   .menu-btn {
-    width: 75%;
-    max-width: 180px;
-    padding: 6px 12px;
-    font-size: 0.8rem;
-    margin-bottom: 6px;
+    width: 65%;
+    max-width: 150px;
+    padding: 4px 8px;
+    font-size: 0.7rem; 
+    margin-bottom: 4px;
+    border-width: 1px;
   }
 
   #choicesP {
-    top: 42%;
-    width: 95%;
+    top: 38%;
+    width: 90%;
   }
 
   .choice-btn {
-    padding: 5px 8px;
-    font-size: 0.75rem;
-    margin-bottom: 4px;
+    padding: 3px 6px; 
+    font-size: 0.65rem; 
+    margin-bottom: 3px;
+    border-radius: 4px;
   }
 
   #game-controls, 
   #drink-button {
-    top: 6px;
+    top: 4px;
   }
 
-  #game-controls { right: 6px; }
-  #drink-button { left: 6px; }
+  #game-controls { right: 4px; }
+  #drink-button { left: 4px; }
 
   .control-btn, 
   .drink-btn {
-    padding: 3px 6px;
-    font-size: 0.65rem;
+    padding: 2px 5px;
+    font-size: 0.55rem;
+    border-radius: 3px;
   }
 
+
   #dialogue-box {
-    bottom: 6px;
-    left: 6px;
-    right: 6px;
-    padding: 8px 10px;
-    min-height: 65px;
-    max-height: 40%;
+    bottom: 4px;
+    left: 4px;
+    right: 4px;
+    padding: 5px 8px; 
+    min-height: 45px;     
+    max-height: 38%;
+    border-width: 1px;
   }
 
   #speaker-name {
-    font-size: 0.8rem;
-    margin-bottom: 2px;
+    font-size: 0.68rem;  
+    margin-bottom: 1px;
   }
 
   #story-text {
-    font-size: 0.75rem;
-    line-height: 1.25;
-    margin-bottom: 4px;
+    font-size: 0.62rem; 
+    line-height: 1.15; 
+    margin-bottom: 2px;
   }
 
   .lebenslauf-container {
@@ -1113,3 +1118,4 @@ img { max-width: 100%; display: block; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; scroll-behavior: auto !important; }
 }
+
