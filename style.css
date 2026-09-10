@@ -883,6 +883,14 @@ img { max-width: 100%; display: block; }
   color: #f2f2f2;
 }
 
+.lebenslauf-container iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+  overflow: hidden;
+}
+
 @media (max-width: 768px) {
   .lebenslauf-container {
     height: 70vh;
@@ -894,14 +902,6 @@ img { max-width: 100%; display: block; }
     height: auto;
     min-height: 100%;
   }
-}
-
-.lebenslauf-container iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-  display: block;
-  overflow: hidden;
 }
 
 #lebenslauf {
