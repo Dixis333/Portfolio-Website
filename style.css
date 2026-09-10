@@ -895,13 +895,19 @@ img { max-width: 100%; display: block; }
   display: none;
 }
 
-.lebenslauf-hero{
+.lebenslauf-hero {
+  max-width: 900px;
   margin: 0 auto;
-  padding: clamp(1rem, 2vw, 1.5rem) clamp(0.5rem, 2vw, 1rem) var(--section-padding);
+  padding: 2rem 1.5rem;
+  color: #f0ede7;
 }
 
-.lebenslauf-hero h1{
-  color: #c7a15b;
+.lebenslauf-hero h1 {
+  color: #c7a15b; /* Gold/Messing Farbton aus dem Screenshot */
+  font-family: var(--font-display, 'Fraunces', serif);
+  font-size: 2.2rem;
+  font-weight: 500;
+  margin-bottom: 2.5rem;
 }
 .lebenslauf-hero p{
   color: #f0ede7;
@@ -948,55 +954,44 @@ img { max-width: 100%; display: block; }
   border-color: var(--color-text);
 }
 
-.timeline {
+
+.cv-table {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  max-width: 75ch;
-  margin-top: 1.5rem;
-}
-
-.timeline-item {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
+  gap: 2rem;
   width: 100%;
 }
 
-.timeline-date {
-  color: #c7a15b;
-  font-weight: 500;
-  white-space: nowrap;
-  display: flex;
-  align-items: baseline;
-  flex: 1;
-  gap: 0.5rem;
+.cv-row {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 2rem;
+  align-items: end;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.35);
 }
 
-.timeline-date::after {
-  content: "";
-  flex: 1;
-  border-bottom: 1px dashed rgba(240, 237, 231, 0.25);
-}
-
-.timeline-content {
+.cv-date {
   color: #f0ede7;
-  text-align: right;
-  max-width: 60%;
+  font-size: 1.05rem;
+  white-space: nowrap;
 }
 
-@media (max-width: 600px) {
-  .timeline-item {
-    flex-direction: column;
-    align-items: flex-start;
+.cv-text {
+  color: #f0ede7;
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 650px) {
+  .cv-row {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+    align-items: start;
   }
-  .timeline-date::after {
-    display: none;
-  }
-  .timeline-content {
-    text-align: left;
-    max-width: 100%;
+  
+  .cv-date {
+    color: #c7a15b;
   }
 }
 
